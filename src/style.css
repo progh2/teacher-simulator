@@ -168,7 +168,7 @@ h2 { margin: 0 0 8px; font-size: 1.05rem; }
   -webkit-font-smoothing: antialiased;
 }
 .roster-sheet-head { border-bottom: 2.5px solid #1c1917; margin-bottom: 8px; padding-bottom: 6px; }
-.roster-sheet-head strong { display: block; font-size: 14px; color: #0c0a09; }
+.roster-sheet-head strong { display: block; font-size: 15px; color: #000; letter-spacing: -0.01em; }
 .roster-sheet-head span { font-size: 11px; color: #44403c; }
 .roster-sheet table { width: 100%; border-collapse: collapse; }
 .roster-sheet th, .roster-sheet td {
@@ -899,3 +899,21 @@ kbd {
 .pile-card.dragging, .tray-card.dragging { opacity: 0.45; }
 .tray-rail.drag-over { outline: 2px dashed #5eead4; outline-offset: 4px; border-radius: 12px; }
 .pile-area.drag-over { outline: 2px dashed #fde68a; outline-offset: 4px; border-radius: 12px; }
+
+/* pile denser round */
+.desk-work.has-pile .pile-area {
+  align-content: space-evenly;
+  padding-bottom: 12px;
+}
+.pile-card .thumb-no { font-size: 48px !important; line-height: 1; }
+.pile-card .thumb-name { font-size: 36px !important; line-height: 1.1; }
+.zone-head { flex-shrink: 0; }
+.tray-zone .zone-head { position: sticky; top: 0; z-index: 6; }
+
+/* toast polish */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%);
+  background: #1c1917; color: #fafaf9; padding: 12px 18px; border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.35); z-index: 100; font-weight: 600;
+  max-width: min(520px, 92vw);
+}
