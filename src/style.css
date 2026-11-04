@@ -1008,3 +1008,118 @@ kbd {
 .is-upsidedown .desk-thumb-face.front {
   outline: 2px dashed #f59e0b; outline-offset: -4px;
 }
+
+
+/* 0030 viewport fit: pile+tray stay inside, less clip, larger notes */
+.app-root.stage-sorting { overflow-x: hidden; }
+.sorting-desk, .desk-table { max-width: 100% !important; width: 100%; }
+.desk-table {
+  grid-template-columns: minmax(220px, 260px) minmax(0, 1fr) !important;
+  height: calc(100vh - 52px) !important;
+  max-height: calc(100vh - 52px) !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  padding: 10px !important;
+  gap: 10px !important;
+}
+.desk-work {
+  min-width: 0 !important;
+  min-height: 0 !important;
+  height: 100%;
+  overflow: hidden;
+  grid-template-rows: minmax(0, 1.15fr) minmax(168px, 0.95fr) !important;
+  gap: 8px !important;
+}
+.desk-work.has-pile {
+  grid-template-rows: minmax(0, 1.15fr) minmax(168px, 0.95fr) !important;
+}
+.pile-zone, .tray-zone {
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 6px 8px !important;
+}
+.pile-area {
+  overflow: hidden !important;
+  gap: 6px 4px !important;
+  padding: 6px 4px 8px !important;
+  align-content: center !important;
+  justify-content: center !important;
+  transform: none !important;
+  min-height: 0 !important;
+}
+.pile-card {
+  width: clamp(110px, 12.5vw, 158px) !important;
+  flex: 0 0 clamp(110px, 12.5vw, 158px) !important;
+  min-width: 0 !important;
+  margin: 0 3px 4px !important;
+  max-width: 100%;
+}
+.pile-card.selected {
+  transform: translateY(calc(-1 * var(--lift, 0px) - 8px)) rotate(var(--r)) scale(1.05) !important;
+}
+.pile-card .desk-thumb-inner,
+.pile-card .desk-thumb-face { min-height: 108px !important; }
+.pile-card .thumb-no { font-size: 28px !important; }
+.pile-card .thumb-name { font-size: 20px !important; }
+.zone-head { padding: 4px 6px !important; margin-bottom: 4px !important; }
+.zone-head h2 { font-size: 13px !important; }
+.zone-head h2 .pile-count {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #78350f;
+  font-size: 13px;
+  font-weight: 800;
+  text-shadow: none;
+}
+.tray-rail {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(108px, 1fr)) !important;
+  gap: 6px !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  padding: 4px 0 4px !important;
+  align-items: stretch;
+  min-height: 0;
+}
+.tray-slot {
+  flex: unset !important;
+  width: auto !important;
+  min-width: 0 !important;
+  padding: 4px !important;
+  gap: 4px !important;
+}
+.tray-slot.empty-slot { min-height: 0 !important; }
+.tray-slot .slot-ghost { min-height: 72px !important; font-size: 12px !important; padding: 4px !important; }
+.tray-slot .desk-thumb-inner,
+.tray-slot .desk-thumb-face { min-height: 86px !important; }
+.tray-slot .thumb-no { font-size: 24px !important; }
+.tray-slot .thumb-name { font-size: 16px !important; }
+.tray-tools { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; padding: 2px !important; }
+.tray-tools .btn.tiny { font-size: 9px; min-height: 24px; padding: 1px 2px; }
+.slot-label { font-size: 10px !important; }
+.desk-sticky {
+  font-size: 15px !important;
+  padding: 12px 14px !important;
+}
+.desk-sticky b { font-size: 13px !important; }
+.desk-sticky p { font-size: 15px !important; line-height: 1.4 !important; }
+.paper-object .side-note,
+.desk-roster > .side-note {
+  font-size: 15px !important;
+  line-height: 1.45 !important;
+  font-weight: 600;
+  padding: 8px 10px !important;
+}
+.desk-roster { max-height: 100%; overflow: auto; }
+@media (max-width: 1100px) {
+  .desk-table { grid-template-columns: 1fr !important; height: auto !important; max-height: none !important; }
+  .desk-work { grid-template-rows: auto auto !important; }
+  .pile-card {
+    width: clamp(100px, 26vw, 150px) !important;
+    flex-basis: clamp(100px, 26vw, 150px) !important;
+  }
+}

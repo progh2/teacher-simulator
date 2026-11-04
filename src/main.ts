@@ -411,7 +411,7 @@ function renderSorting() {
       const card = cardsById.get(id)!
       const n = Math.max(1, pile.length)
       const t = n === 1 ? 0 : i / (n - 1) // 0..1
-      const rot = -12 + t * 24 + ((i % 3) - 1) * 3
+      const rot = -7 + t * 14 + ((i % 3) - 1) * 2
       const lift = (i % 5) * 5
       return `
 <div class="desk-card pile-card ${selectedPileId === id ? 'selected' : ''}" data-id="${id}" draggable="true"
@@ -492,7 +492,7 @@ function renderSorting() {
     <div class="desk-work ${pile.length ? 'has-pile' : 'no-pile'}">
       <div class="pile-zone ${pile.length ? '' : 'is-empty'}" id="pile-zone">
         <header class="zone-head">
-          <h2>흐트러진 더미 <small>${pile.length}</small></h2>
+          <h2>흐트러진 더미 <small class="pile-count">${pile.length}장</small></h2>
           <div class="pile-actions toolbar">
             <button type="button" class="btn tiny" id="btn-flip-sel" ${selectedPileId ? '' : 'disabled'} title="F">선택 뒤집기 <kbd>F</kbd></button>
             <button type="button" class="btn tiny" id="btn-spin-sel" ${selectedPileId ? '' : 'disabled'} title="R">위아래 <kbd>R</kbd></button>

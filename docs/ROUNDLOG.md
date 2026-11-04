@@ -14,3 +14,7 @@
 | ~00:56 | 0027 | Roster ink, mag assert |
 | ~01:10 | 0028 | Orient badges on thumbs |
 | ~01:24 | 0029 | Viewport check script |
+
+## Round 0030 (01:35 KST)
+- Sorting: viewport-fit pile+tray, pile-count badge, larger memo/hint, milder fan
+- e2e OK, viewport OK
