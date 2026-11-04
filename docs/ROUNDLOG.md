@@ -73,3 +73,6 @@
 
 ## Round 0048 (03:06 KST)
 - Howto steps + seed chip
+
+## Round 0049 (03:07 KST)
+- Inspection numbered dots + student card

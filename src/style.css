@@ -1686,3 +1686,49 @@ kbd {
   color: #57534e;
 }
 .howto-seed b { color: #0f766e; }
+
+
+/* 0049 inspection dots + student card */
+.dot-nav {
+  gap: 6px !important;
+  margin-top: 12px !important;
+}
+.dot {
+  width: 26px !important;
+  height: 26px !important;
+  border-radius: 8px !important;
+  border-width: 2px !important;
+  font-size: 11px;
+  font-weight: 800;
+  color: #78716c;
+  background: #fff !important;
+  display: inline-grid;
+  place-items: center;
+}
+.dot.done {
+  background: #0f766e !important;
+  border-color: #0f766e !important;
+  color: #ecfdf5 !important;
+}
+.dot.current {
+  outline: 2px solid #f59e0b !important;
+  outline-offset: 2px;
+  color: #0f766e;
+  border-color: #0f766e !important;
+}
+.dot.current.done {
+  color: #ecfdf5 !important;
+}
+.student-card {
+  border-width: 2px !important;
+  box-shadow: 0 4px 12px rgba(28,25,23,0.05);
+}
+.student-card dt {
+  font-size: 11px;
+  color: #78716c;
+  font-weight: 700;
+}
+.student-card dd {
+  font-size: 15px !important;
+  color: #1c1917;
+}

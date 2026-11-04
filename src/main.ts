@@ -747,7 +747,7 @@ function renderInspection() {
         ${order
           .map((id, i) => {
             const done = judgments.has(id)
-            return `<button type="button" class="dot ${i === inspectIndex ? 'current' : ''} ${done ? 'done' : ''}" data-i="${i}"></button>`
+            return `<button type="button" class="dot ${i === inspectIndex ? 'current' : ''} ${done ? 'done' : ''}" data-i="${i}" aria-label="${i + 1}번">${i + 1}</button>`
           })
           .join('')}
       </div>
