@@ -994,3 +994,17 @@ kbd {
 }
 .tray-slot.empty-slot { min-height: 168px; }
 .tray-slot .slot-ghost { min-height: 140px; font-size: 15px; }
+
+/* 0028 orient badges */
+.tf.warn, .thumb-badge-orient {
+  background: #fef3c7 !important; color: #92400e !important; border: 1px solid #f59e0b;
+  font-weight: 800; font-style: normal; font-size: 11px; padding: 2px 6px; border-radius: 4px;
+}
+.back-badge {
+  position: absolute; top: 10px; right: 10px;
+  background: #fee2e2 !important; color: #991b1b !important; border-color: #ef4444;
+}
+.desk-thumb-face.back { position: relative; }
+.is-upsidedown .desk-thumb-face.front {
+  outline: 2px dashed #f59e0b; outline-offset: -4px;
+}

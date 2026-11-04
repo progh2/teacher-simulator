@@ -158,6 +158,7 @@ export function renderDeskThumb(card: OmrCard): string {
     <span class="thumb-form">${form}</span>
   </div>
   <div class="thumb-flags">
+    ${card.upsideDown ? '<i class="tf warn thumb-badge-orient">위아래!</i>' : ''}
     ${card.proctorSigned ? '' : '<i class="tf">감독?</i>'}
     ${card.hasCorrectionTape ? '<i class="tf">테이프</i>' : ''}
     ${card.wrongPen ? '<i class="tf">펜</i>' : ''}
@@ -167,6 +168,7 @@ export function renderDeskThumb(card: OmrCard): string {
   const back = `
 <article class="desk-thumb-face back">
   <div class="thumb-back-label">답안지 뒷면</div>
+  <div class="thumb-badge-orient back-badge">뒤집힘</div>
 </article>`
   return `
 <div class="desk-thumb card-3d ${ori}" data-card-id="${card.id}" tabindex="0"
