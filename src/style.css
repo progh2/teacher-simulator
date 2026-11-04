@@ -1827,3 +1827,39 @@ kbd {
   box-shadow: 0 12px 28px rgba(0,0,0,0.35);
   border: 1px solid #44403c;
 }
+
+
+/* 0052 results card explain tags */
+.result-card {
+  border-width: 2px;
+  border-radius: 14px;
+  padding: 12px !important;
+  background: #fff;
+}
+.result-card.ok { border-color: #86efac; box-shadow: 0 0 0 1px rgba(22,163,74,0.12); }
+.result-card.ng { border-color: #fda4af; box-shadow: 0 0 0 1px rgba(225,29,72,0.12); }
+.result-card header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.result-card .tag {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+}
+.result-card .tag.good { background: #dcfce7; color: #166534; }
+.result-card .tag.bad { background: #ffe4e6; color: #9f1239; }
+.result-card .explain {
+  font-size: 13px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 8px;
+  margin-top: 4px;
+}
+.result-card .explain.hit { background: #ecfdf5; color: #065f46; }
+.result-card .explain.miss { background: #fff1f2; color: #9f1239; }
+.result-card .explain.fp { background: #fff7ed; color: #9a3412; }

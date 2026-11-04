@@ -82,3 +82,6 @@
 
 ## Round 0051 (03:12 KST)
 - Zoom toolbar + high-contrast toast
+
+## Round 0052 (03:13 KST)
+- Results card explain tags
