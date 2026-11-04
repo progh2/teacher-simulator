@@ -16,6 +16,8 @@ const mime = {
   '.css': 'text/css; charset=utf-8',
   '.svg': 'image/svg+xml',
   '.png': 'image/png',
+  '.ttf': 'font/ttf',
+  '.woff2': 'font/woff2',
 }
 
 function serve(port) {
@@ -34,12 +36,77 @@ function serve(port) {
   return new Promise((resolve) => server.listen(port, '127.0.0.1', () => resolve(server)))
 }
 
-async function flipAll(page) {
-  for (let guard = 0; guard < 30; guard++) {
-    const down = page.locator('.sort-item.is-down button[data-act="flip"]')
-    if ((await down.count()) === 0) break
-    await down.first().click()
-    await page.waitForTimeout(200)
+async function passHeadcount(page) {
+  await page.waitForSelector('[data-stage="headcount"]')
+  const counts = await page.evaluate(() => {
+    const rows = [...document.querySelectorAll('.roster-sheet tbody tr')]
+    let absent = 0
+    let present = 0
+    for (const r of rows) {
+      if (r.classList.contains('absent') || r.querySelector('.abs-mark')) absent++
+      else present++
+    }
+    return { enrolled: present + absent, present, absent }
+  })
+  await page.fill('input[name="enrolled"]', String(counts.enrolled))
+  await page.fill('input[name="present"]', String(counts.present))
+  await page.fill('input[name="absent"]', String(counts.absent))
+  await page.click('#hc-form button[type=submit]')
+  await page.waitForSelector('[data-stage="sorting"]')
+}
+
+async function judgeCurrent(page) {
+  const selected = await page.evaluate(() => {
+    const out = []
+    const card = document.querySelector('.zoom-canvas .omr-card')
+    if (!card) return ['ok']
+
+    const handName = card.querySelector('.hand-line.name .handwrite')?.textContent?.trim()
+    const rosterHint = card.querySelector('.roster-hint')?.textContent || ''
+    const rosterName = rosterHint.replace(/^명렬 대조:\s*\d+\s*/, '').replace(/\s*\(결시\)/, '').trim()
+    if (handName && rosterName && handName !== rosterName) out.push('name_mismatch')
+
+    if (card.querySelector('.proctor.missing')) out.push('missing_proctor')
+    if (card.querySelector('.tape-trace.tape-bad')) out.push('correction_tape')
+    if (card.querySelector('.bub.wrong-pen')) out.push('wrong_pen')
+    if (card.classList.contains('dmg-fold') || card.classList.contains('dmg-stain') || card.classList.contains('dmg-tear')) {
+      out.push('damaged')
+    }
+
+    const formFilled = card.querySelectorAll('.form-type .bub.filled').length
+    if (card.querySelector('.form-type') && formFilled === 0) out.push('form_type')
+
+    // subject digit groups
+    const subj = [...card.querySelectorAll('.digit-group')].find((g) =>
+      (g.querySelector('.group-label')?.textContent || '').includes('과목'),
+    )
+    if (subj && subj.querySelectorAll('.bub.filled').length === 0) out.push('missing_subject')
+
+    const ansRows = [...card.querySelectorAll('.ans-row')]
+    if (ansRows.some((r) => r.querySelectorAll('.bub.filled').length >= 2)) out.push('duplicate_mark')
+    if (ansRows.some((r) => r.querySelectorAll('.bub.filled').length === 0)) out.push('missing_mark')
+    if (card.querySelectorAll('.bub.incomplete').length > 0) out.push('incomplete_mark')
+
+    return out.length ? out : ['ok']
+  })
+
+  for (const inp of await page.locator('#judge-form input[type=checkbox]').all()) {
+    const val = await inp.getAttribute('value')
+    const want = selected.includes(val)
+    if (want !== (await inp.isChecked())) {
+      await inp.click()
+      await page.waitForTimeout(40)
+    }
+  }
+
+  // disposition: ok -> 정상, else 교과 확인
+  const wantDisp = selected.includes('ok') && selected.length === 1 ? 'ok' : 'to_subject'
+  for (const inp of await page.locator('#disp-form input[type=radio]').all()) {
+    const val = await inp.getAttribute('value')
+    if (val === wantDisp && !(await inp.isChecked())) {
+      await inp.click()
+      await page.waitForTimeout(40)
+    }
   }
 }
 
@@ -47,7 +114,7 @@ async function main() {
   const port = 4177
   const server = await serve(port)
   const browser = await chromium.launch()
-  const page = await browser.newPage({ viewport: { width: 1280, height: 860 } })
+  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } })
   page.on('dialog', async (d) => d.accept())
   const errors = []
   page.on('console', (msg) => {
@@ -55,113 +122,114 @@ async function main() {
   })
   page.on('pageerror', (err) => errors.push(err.message))
 
-  const base = `http://127.0.0.1:${port}/?seed=20261104`
+  const base = `http://127.0.0.1:${port}/`
 
+  // Hub
   await page.goto(base, { waitUntil: 'networkidle' })
-  await page.waitForSelector('[data-stage="title"]')
-  await page.screenshot({ path: join(outDir, '01-title.png'), fullPage: true })
+  await page.waitForSelector('[data-stage="hub"]')
+  await page.screenshot({ path: join(outDir, '01-hub.png'), fullPage: true })
 
-  await page.click('#btn-howto')
+  // Difficulty
+  await page.click('#tile-omr')
+  await page.waitForSelector('[data-stage="difficulty"]')
+  await page.screenshot({ path: join(outDir, '02-difficulty.png'), fullPage: true })
+
+  // Start easy with fixed seed via URL after startRun — click easy then inject seed by reloading with query
+  // Difficulty cards: click first .diff-card
+  await page.click('.diff-card')
   await page.waitForSelector('[data-stage="howto"]')
-  await page.screenshot({ path: join(outDir, '02-howto.png'), fullPage: true })
+  await page.screenshot({ path: join(outDir, '03-howto.png'), fullPage: true })
 
-  await page.click('#btn-go')
-  await page.waitForSelector('[data-stage="sorting"]')
-  await page.screenshot({ path: join(outDir, '03-sorting.png'), fullPage: true })
-
-  // Flip one face-down for flip shot
-  const down = page.locator('.sort-item.is-down button[data-act="flip"]')
-  if (await down.count()) {
-    await down.first().click()
-    await page.waitForTimeout(700)
+  // Force seed for reproducibility: navigate with ?diff=easy&seed=20261104 after howto path via history
+  await page.goto(`${base}?diff=easy&seed=20261104`, { waitUntil: 'networkidle' })
+  // URL may boot hub or auto-start — check
+  if (await page.locator('[data-stage="hub"]').count()) {
+    await page.click('#tile-omr')
+    await page.waitForSelector('[data-stage="difficulty"]')
+    // click easy specifically
+    const easy = page.locator('.diff-card').filter({ hasText: '쉬움' })
+    if (await easy.count()) await easy.first().click()
+    else await page.click('.diff-card')
+    await page.waitForSelector('[data-stage="howto"]')
   }
-  await page.screenshot({ path: join(outDir, '04-flip.png'), fullPage: true })
+  if (await page.locator('[data-stage="howto"]').count()) {
+    await page.click('#btn-go')
+  }
+  await page.waitForSelector('[data-stage="headcount"]')
+  await page.screenshot({ path: join(outDir, '04-headcount.png'), fullPage: true })
 
-  await flipAll(page)
+  await passHeadcount(page)
+  await page.screenshot({ path: join(outDir, '05-sorting-pile.png'), fullPage: true })
+
+  // Select topmost pile card (highest z-index = last in DOM) then flip
+  const pileCards = page.locator('.pile-card')
+  const nPile = await pileCards.count()
+  if (nPile > 0) {
+    await pileCards.nth(nPile - 1).click({ force: true })
+    await page.waitForTimeout(200)
+    const flipBtn = page.locator('#btn-flip-sel')
+    if (await flipBtn.isEnabled()) {
+      await flipBtn.click()
+      await page.waitForTimeout(600)
+    } else {
+      // force-select via evaluate if buttons stayed disabled
+      await page.evaluate(() => {
+        const cards = [...document.querySelectorAll('.pile-card')]
+        const top = cards[cards.length - 1]
+        top?.dispatchEvent(new MouseEvent('click', { bubbles: true }))
+      })
+      await page.waitForTimeout(300)
+      if (await page.locator('#btn-flip-sel').isEnabled()) {
+        await page.click('#btn-flip-sel')
+        await page.waitForTimeout(600)
+      }
+    }
+  }
+  await page.screenshot({ path: join(outDir, '06-flip.png'), fullPage: true })
+
   await page.click('#btn-autosort')
   await page.waitForTimeout(400)
-  await page.screenshot({ path: join(outDir, '03b-sorting-ordered.png'), fullPage: true })
+  await page.screenshot({ path: join(outDir, '07-sorting-tray.png'), fullPage: true })
 
-  await page.click('#btn-to-inspect')
-  await page.waitForSelector('[data-stage="inspection"]', { timeout: 5000 })
-  await page.screenshot({ path: join(outDir, '05-inspection.png'), fullPage: true })
+  await page.click('#btn-done-sort')
+  await page.waitForSelector('[data-stage="inspection"]', { timeout: 8000 })
+  await page.screenshot({ path: join(outDir, '08-inspection.png'), fullPage: true })
+
+  // Zoom in for detail shot
+  await page.click('#z-in')
+  await page.click('#z-in')
+  await page.waitForTimeout(200)
+  await page.screenshot({ path: join(outDir, '09-inspection-zoom.png'), fullPage: true })
+  await page.click('#z-reset')
 
   const n = await page.locator('#dot-nav .dot').count()
   for (let i = 0; i < n; i++) {
     await page.locator('#dot-nav .dot').nth(i).click()
-    await page.waitForTimeout(80)
-    const selected = []
-    const rosterName = (await page.locator('.student-card dd').nth(1).textContent())?.trim()
-    const handName = (await page.locator('.hand-line.name .handwrite').textContent())?.trim()
-    if (rosterName && handName && rosterName !== handName) selected.push('name_mismatch')
-
-    const subjFilled = await page.locator('.subj-wrap .bub.filled').count()
-    if (subjFilled === 0) selected.push('missing_subject')
-
-    const doubleRows = await page.locator('.ans-row').evaluateAll((rows) =>
-      rows.some((r) => r.querySelectorAll('.bub.filled').length >= 2),
-    )
-    if (doubleRows) selected.push('double_mark')
-
-    const missing = await page.locator('.ans-row').evaluateAll((rows) =>
-      rows.some((r) => r.querySelectorAll('.bub.filled').length === 0),
-    )
-    if (missing) selected.push('missing_mark')
-
-    if ((await page.locator('.bub.filled.faint').count()) > 0) selected.push('faint_mark')
-
-    const rosterNo = Number((await page.locator('.student-card dd').nth(0).textContent())?.trim())
-    const markedNo = await page
-      .locator('.mark-block .bub-row')
-      .nth(2)
-      .locator('.bub.filled')
-      .first()
-      .getAttribute('data-n')
-    if (markedNo && Number(markedNo) !== rosterNo) selected.push('wrong_number')
-
-    const gradeClass = (await page.locator('.student-card dd').nth(2).textContent()) || ''
-    const g = Number(gradeClass.match(/(\d+)학년/)?.[1])
-    const c = Number(gradeClass.match(/(\d+)반/)?.[1])
-    const mg = await page
-      .locator('.mark-block .bub-row')
-      .nth(0)
-      .locator('.bub.filled')
-      .first()
-      .getAttribute('data-n')
-    const mc = await page
-      .locator('.mark-block .bub-row')
-      .nth(1)
-      .locator('.bub.filled')
-      .first()
-      .getAttribute('data-n')
-    if ((mg && Number(mg) !== g) || (mc && Number(mc) !== c)) selected.push('wrong_grade_class')
-
-    if (selected.length === 0) selected.push('ok')
-
-    for (const inp of await page.locator('#judge-form input[type=checkbox]').all()) {
-      const val = await inp.getAttribute('value')
-      const want = selected.includes(val)
-      if (want !== (await inp.isChecked())) {
-        await inp.click()
-        await page.waitForTimeout(50)
-      }
-    }
-
+    await page.waitForTimeout(60)
+    await judgeCurrent(page)
     if (i < n - 1) {
       await page.click('#btn-submit')
-      await page.waitForTimeout(100)
+      await page.waitForTimeout(80)
     }
   }
-  await page.screenshot({ path: join(outDir, '05b-inspection-judged.png'), fullPage: true })
+  await page.screenshot({ path: join(outDir, '10-inspection-judged.png'), fullPage: true })
   await page.click('#btn-submit')
   await page.waitForSelector('[data-stage="results"]')
-  await page.screenshot({ path: join(outDir, '06-results.png'), fullPage: true })
+  await page.screenshot({ path: join(outDir, '11-results.png'), fullPage: true })
 
+  // Mobile sorting
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto(base, { waitUntil: 'networkidle' })
-  await page.click('#btn-start')
-  await page.waitForSelector('[data-stage="sorting"]')
-  await page.screenshot({ path: join(outDir, '07-mobile-sorting.png'), fullPage: true })
+  await page.goto(`${base}?diff=easy&seed=20261104`, { waitUntil: 'networkidle' })
+  if (await page.locator('[data-stage="hub"]').count()) {
+    await page.click('#tile-omr')
+    await page.waitForSelector('[data-stage="difficulty"]')
+    const easy = page.locator('.diff-card').filter({ hasText: '쉬움' })
+    if (await easy.count()) await easy.first().click()
+    else await page.click('.diff-card')
+  }
+  if (await page.locator('[data-stage="howto"]').count()) await page.click('#btn-go')
+  await passHeadcount(page)
+  await page.screenshot({ path: join(outDir, '12-mobile-sorting.png'), fullPage: true })
 
   await browser.close()
   server.close()
