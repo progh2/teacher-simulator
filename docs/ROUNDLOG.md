@@ -43,3 +43,6 @@
 
 ## Round 0038 (02:22 KST)
 - e2e click+drag regression assert
+
+## Round 0039 (02:23 KST)
+- Stronger slot-bad/warn chips; orient card gaps

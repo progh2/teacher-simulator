@@ -1285,3 +1285,48 @@ kbd {
 .field-rules ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
 .field-rules li { font-size: 14px; line-height: 1.4; }
 .field-rules strong { color: #0f766e; }
+
+/* 0039 wrong-slot feedback + orient breathing room */
+.tray-slot.slot-bad {
+  border-width: 3px !important;
+  box-shadow: inset 0 0 0 1px #fecaca, 0 0 0 2px rgba(248,113,113,0.35);
+}
+.tray-slot.slot-warn {
+  border-width: 3px !important;
+  box-shadow: inset 0 0 0 1px #fde68a, 0 0 0 2px rgba(251,191,36,0.35);
+}
+.tray-slot.slot-ok {
+  border-width: 3px !important;
+}
+.tray-slot .slot-label {
+  font-size: 11px !important;
+  letter-spacing: 0.01em;
+}
+.tray-slot .slot-label em {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+.tray-slot.slot-bad .slot-label em {
+  background: #7f1d1d;
+  color: #fecaca !important;
+}
+.tray-slot.slot-warn .slot-label em {
+  background: #78350f;
+  color: #fde68a !important;
+}
+.tray-slot.slot-ok .slot-label em {
+  background: #14532d;
+  color: #bbf7d0 !important;
+}
+.pile-card.has-orient,
+.pile-card.has-back {
+  margin-left: 8px !important;
+  margin-right: 8px !important;
+}
+.desk-table {
+  padding-right: 12px !important;
+}
