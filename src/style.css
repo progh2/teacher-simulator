@@ -1475,3 +1475,58 @@ kbd {
 .disp.disp-ok.on strong { color: #065f46; }
 .disp.disp-ask_student.on strong { color: #92400e; }
 .disp.disp-to_subject.on strong { color: #9f1239; }
+
+
+/* 0044 cleaner inspection OMR answers */
+.app-root.stage-inspection .zoom-canvas .omr-card {
+  font-size: 14px !important;
+}
+.app-root.stage-inspection .zoom-canvas .bub {
+  width: 18px !important;
+  height: 18px !important;
+  border-width: 1.6px;
+}
+.app-root.stage-inspection .zoom-canvas .bub i {
+  font-size: 9px !important;
+}
+.app-root.stage-inspection .zoom-canvas .digit-bubs .bub {
+  width: 15px !important;
+  height: 15px !important;
+}
+.app-root.stage-inspection .zoom-canvas .ans-legend,
+.app-root.stage-inspection .zoom-canvas .ans-row {
+  grid-template-columns: 34px repeat(5, 24px) !important;
+  gap: 8px !important;
+}
+.app-root.stage-inspection .zoom-canvas .handwrite {
+  font-size: 30px !important;
+  letter-spacing: 0.02em;
+}
+.app-root.stage-inspection .zoom-canvas .roster-hint {
+  font-size: 12px !important;
+  font-weight: 700;
+  padding: 5px 8px !important;
+  background: #fef3c7 !important;
+  color: #78350f !important;
+  border: 1px solid #f59e0b;
+}
+.app-root.stage-inspection .zoom-canvas .bub.incomplete {
+  background:
+    linear-gradient(135deg, rgba(30,30,30,0.75) 0 48%, transparent 52%),
+    #fff !important;
+  border-style: solid !important;
+  border-color: #444 !important;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.15);
+}
+.app-root.stage-inspection .zoom-canvas .bub.wrong-pen {
+  background: radial-gradient(circle at 40% 35%, #3b82f6, #1e3a8a) !important;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.35);
+}
+.app-root.stage-inspection .zoom-canvas .ans-legend {
+  font-size: 12px !important;
+}
+.app-root.stage-inspection .zoom-canvas .qno {
+  font-size: 13px;
+  font-weight: 800;
+  color: #9f1239;
+}

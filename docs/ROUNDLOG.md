@@ -58,3 +58,6 @@
 
 ## Round 0043 (02:53 KST)
 - Disposition color coding on inspection
+
+## Round 0044 (02:53 KST)
+- Cleaner inspection OMR answers/handwriting
