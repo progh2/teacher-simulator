@@ -284,8 +284,10 @@ function renderDifficulty() {
     .map((id) => {
       const d = DIFFICULTIES[id]
       const lim = d.timeLimitSec ? `${Math.floor(d.timeLimitSec / 60)}분 제한` : '시간 제한 없음'
+      const ico = id === 'easy' ? '🌱' : id === 'normal' ? '📘' : '🔥'
       return `
 <button type="button" class="diff-card" data-diff="${id}">
+  <span class="diff-ico" aria-hidden="true">${ico}</span>
   <h2>${d.label}</h2>
   <p><b>${d.studentCount}</b>명 · 문항 ${d.questionCount} · 결시 ${d.absentCount}</p>
   <p>${lim}</p>
@@ -564,12 +566,21 @@ function bindSorting() {
     el.addEventListener('dragstart', (e: DragEvent) => {
       e.dataTransfer?.setData('text/plain', el.dataset.id!)
       selectedPileId = el.dataset.id!
+      el.classList.add('dragging')
     })
+    el.addEventListener('dragend', () => el.classList.remove('dragging'))
   })
 
-  app.querySelector('#tray-zone')?.addEventListener('dragover', (e) => e.preventDefault())
-  app.querySelector('#tray-zone')?.addEventListener('drop', (e) => {
+  const trayZone = app.querySelector('#tray-zone')
+  const trayRail = app.querySelector('#tray-rail')
+  trayZone?.addEventListener('dragover', (e) => {
     e.preventDefault()
+    trayRail?.classList.add('drag-over')
+  })
+  trayZone?.addEventListener('dragleave', () => trayRail?.classList.remove('drag-over'))
+  trayZone?.addEventListener('drop', (e) => {
+    e.preventDefault()
+    trayRail?.classList.remove('drag-over')
     const de = e as DragEvent
     const id = de.dataTransfer?.getData('text/plain')
     if (id) moveToTray(id)
@@ -722,7 +733,7 @@ function renderInspection() {
       </div>
       <p class="side-note mag-hint">마우스 위에 돋보기 렌즈 · 드래그로 이동 · +/− 로 확대</p>
     </div>
-    <aside class="inspect-judge">
+    <aside class="inspect-judge inspect-actions">
       <h2>발견한 이상</h2>
       <form id="judge-form" class="judge-form">${checks}</form>
       <h2>조치</h2>
