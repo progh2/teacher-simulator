@@ -67,3 +67,6 @@
 
 ## Round 0046 (02:54 KST)
 - Stronger error-check selected states
+
+## Round 0047 (03:05 KST)
+- Empty tray ghosts + pile-empty banner
