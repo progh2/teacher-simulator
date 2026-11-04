@@ -1,5 +1,7 @@
+import { expectedDisposition } from './generator'
 import type {
   CardScore,
+  Disposition,
   ErrorType,
   GameScore,
   InspectionJudgment,
@@ -7,16 +9,15 @@ import type {
   SortResult,
 } from './types'
 
-const SORT_ORDER = 30
-const SORT_FLIP = 20
-const PER_CARD = 10
-const TIME_SOFT_CAP = 240 // seconds — soft target
+const HC = 20
+const SORT_ORDER = 25
+const SORT_ORI = 25
+const PER_CARD = 8
+const TIME_SOFT = 300
 
 function normalize(selected: ErrorType[]): ErrorType[] {
   const set = new Set(selected)
-  if (set.has('ok') && set.size > 1) {
-    set.delete('ok')
-  }
+  if (set.has('ok') && set.size > 1) set.delete('ok')
   return [...set]
 }
 
@@ -29,15 +30,17 @@ export function scoreSort(
     playerOrder.length === expected.length &&
     playerOrder.every((id, i) => id === expected[i])
 
-  const stillFaceDown = playerOrder.filter((id) => cardsById.get(id)?.faceDown)
-  const flipsCorrect = stillFaceDown.length === 0
+  const badOrientation = playerOrder.filter((id) => {
+    const c = cardsById.get(id)
+    return c && (c.faceDown || c.upsideDown)
+  })
 
   return {
     orderCorrect,
-    flipsCorrect,
+    orientationCorrect: badOrientation.length === 0,
     playerOrder,
     expectedOrder: expected,
-    stillFaceDown,
+    badOrientation,
   }
 }
 
@@ -45,75 +48,81 @@ export function scoreInspection(
   cards: OmrCard[],
   judgments: InspectionJudgment[],
 ): CardScore[] {
-  const byId = new Map(judgments.map((j) => [j.cardId, normalize(j.selected)]))
+  const byId = new Map(judgments.map((j) => [j.cardId, j]))
   return cards.map((card) => {
-    // if only ok was injected
-    const exp =
+    const exp: ErrorType[] =
       card.injectedErrors.length === 1 && card.injectedErrors[0] === 'ok'
-        ? (['ok'] as ErrorType[])
+        ? ['ok']
         : card.injectedErrors.filter((e) => e !== 'ok')
+    const j = byId.get(card.id)
+    const selected = normalize(j?.selected ?? [])
+    const disposition: Disposition = j?.disposition ?? 'ok'
+    const expectedDisp = expectedDisposition(card)
 
-    const selected = byId.get(card.id) ?? []
     const expSet = new Set(exp)
     const selSet = new Set(selected)
-
     const hit = [...selSet].filter((e) => expSet.has(e))
     const missed = [...expSet].filter((e) => !selSet.has(e))
     const falsePositive = [...selSet].filter((e) => !expSet.has(e))
-    const perfect = missed.length === 0 && falsePositive.length === 0 && hit.length === expSet.size
+    const dispositionOk = disposition === expectedDisp
+    const perfect =
+      missed.length === 0 && falsePositive.length === 0 && hit.length === expSet.size && dispositionOk
 
     return {
       cardId: card.id,
       expected: exp,
       selected,
+      expectedDisposition: expectedDisp,
+      disposition,
       hit,
       missed,
       falsePositive,
+      dispositionOk,
       perfect,
     }
   })
 }
 
-export function computeScore(
-  sort: SortResult,
-  inspection: CardScore[],
-  timeSeconds: number,
-  cardCount: number,
-): GameScore {
+export function computeScore(opts: {
+  headcountOk: boolean
+  sort: SortResult
+  inspection: CardScore[]
+  timeSeconds: number
+  cardCount: number
+  timedOut: boolean
+}): GameScore {
+  const headcountPoints = opts.headcountOk ? HC : 0
   const sortPoints =
-    (sort.orderCorrect ? SORT_ORDER : 0) + (sort.flipsCorrect ? SORT_FLIP : 0)
+    (opts.sort.orderCorrect ? SORT_ORDER : 0) + (opts.sort.orientationCorrect ? SORT_ORI : 0)
 
   let inspectionPoints = 0
-  for (const c of inspection) {
-    if (c.perfect) {
-      inspectionPoints += PER_CARD
-    } else {
-      // partial: +2 per hit, -2 miss, -1 false positive
-      inspectionPoints += c.hit.length * 2 - c.missed.length * 2 - c.falsePositive.length
+  for (const c of opts.inspection) {
+    if (c.perfect) inspectionPoints += PER_CARD
+    else {
+      inspectionPoints +=
+        c.hit.length * 2 - c.missed.length * 2 - c.falsePositive.length + (c.dispositionOk ? 2 : -2)
     }
   }
   inspectionPoints = Math.max(0, inspectionPoints)
 
-  const maxInspection = cardCount * PER_CARD
-  const maxTotal = SORT_ORDER + SORT_FLIP + maxInspection + 10
-
-  // time bonus up to 10 if under soft cap
-  const timeBonus =
-    timeSeconds <= 0
-      ? 0
-      : Math.max(0, Math.min(10, Math.round(10 * (1 - timeSeconds / TIME_SOFT_CAP))))
-
-  const total = sortPoints + inspectionPoints + timeBonus
+  const maxInspection = opts.cardCount * PER_CARD
+  const maxTotal = HC + SORT_ORDER + SORT_ORI + maxInspection + 10
+  const timeBonus = opts.timedOut
+    ? 0
+    : Math.max(0, Math.min(10, Math.round(10 * (1 - opts.timeSeconds / TIME_SOFT))))
 
   return {
-    sortOrderOk: sort.orderCorrect,
-    sortFlipOk: sort.flipsCorrect,
+    headcountOk: opts.headcountOk,
+    headcountPoints,
+    sortOrderOk: opts.sort.orderCorrect,
+    sortOrientationOk: opts.sort.orientationCorrect,
     sortPoints,
-    inspection,
+    inspection: opts.inspection,
     inspectionPoints,
-    timeSeconds,
+    timeSeconds: opts.timeSeconds,
     timeBonus,
-    total,
+    total: headcountPoints + sortPoints + inspectionPoints + timeBonus,
     maxTotal,
+    timedOut: opts.timedOut,
   }
 }
