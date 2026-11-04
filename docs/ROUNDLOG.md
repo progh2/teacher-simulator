@@ -55,3 +55,6 @@
 
 ## Round 0042 (02:52 KST)
 - Results grade badge + colored meters
+
+## Round 0043 (02:53 KST)
+- Disposition color coding on inspection

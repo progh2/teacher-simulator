@@ -1445,3 +1445,33 @@ kbd {
 .score-bar i {
   background: linear-gradient(90deg, #34d399, #0f766e) !important;
 }
+
+
+/* 0043 disposition color coding */
+.disp-form { display: grid; gap: 8px; }
+.disp {
+  border-width: 2px !important;
+  border-radius: 12px !important;
+  padding: 10px 12px !important;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.disp.disp-ok.on {
+  background: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  box-shadow: 0 0 0 2px rgba(16,185,129,0.25);
+}
+.disp.disp-ask_student.on {
+  background: #fffbeb !important;
+  border-color: #f59e0b !important;
+  box-shadow: 0 0 0 2px rgba(245,158,11,0.28);
+}
+.disp.disp-to_subject.on {
+  background: #fff1f2 !important;
+  border-color: #e11d48 !important;
+  box-shadow: 0 0 0 2px rgba(225,29,72,0.25);
+}
+.disp strong { font-size: 14px !important; }
+.disp small { font-size: 12px !important; line-height: 1.35; display: block; margin-top: 2px; }
+.disp.disp-ok.on strong { color: #065f46; }
+.disp.disp-ask_student.on strong { color: #92400e; }
+.disp.disp-to_subject.on strong { color: #9f1239; }

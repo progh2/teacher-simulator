@@ -718,7 +718,7 @@ function renderInspection() {
   const dispositions = (['ok', 'ask_student', 'to_subject'] as Disposition[])
     .map(
       (disp) => `
-<label class="disp ${j.disposition === disp ? 'on' : ''}">
+<label class="disp disp-${disp} ${j.disposition === disp ? 'on' : ''}" data-disp="${disp}">
   <input type="radio" name="disp" value="${disp}" ${j.disposition === disp ? 'checked' : ''}/>
   <span><strong>${DISPOSITION_LABELS[disp]}</strong><small>${DISPOSITION_HINTS[disp]}</small></span>
 </label>`,
