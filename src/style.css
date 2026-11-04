@@ -1786,3 +1786,44 @@ kbd {
   font-weight: 800;
   margin-bottom: 6px;
 }
+
+
+/* 0051 zoom toolbar + toast */
+.zoom-toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px !important;
+  padding: 6px 8px;
+  background: rgba(28,25,23,0.55);
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+}
+.zoom-toolbar .btn.tiny {
+  min-width: 40px;
+  min-height: 32px;
+  font-size: 14px;
+  font-weight: 800;
+  background: #fafaf9;
+  border: 1px solid #e7e5e4;
+}
+.zoom-toolbar .btn.tiny:hover {
+  background: #ccfbf1;
+  border-color: #14b8a6;
+}
+.toast {
+  position: fixed !important;
+  left: 50% !important;
+  bottom: 28px !important;
+  transform: translateX(-50%);
+  z-index: 80 !important;
+  max-width: min(520px, 92vw);
+  padding: 12px 18px !important;
+  border-radius: 12px !important;
+  background: #1c1917 !important;
+  color: #fef9c3 !important;
+  font-size: 15px !important;
+  font-weight: 700;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.35);
+  border: 1px solid #44403c;
+}
