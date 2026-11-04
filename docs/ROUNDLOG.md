@@ -70,3 +70,6 @@
 
 ## Round 0047 (03:05 KST)
 - Empty tray ghosts + pile-empty banner
+
+## Round 0048 (03:06 KST)
+- Howto steps + seed chip

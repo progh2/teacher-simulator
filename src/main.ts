@@ -343,7 +343,7 @@ function renderHowto() {
       <li><strong>마킹</strong> 교사가 대신 고치지 않음</li>
     </ul>
   </aside>
-  <p class="side-note">시드 ${d.config.seed} · 재적 ${d.config.studentCount} · 응시 ${d.cards.length}</p>
+  <p class="howto-seed">시드 <b>${d.config.seed}</b> · 재적 <b>${d.config.studentCount}</b> · 응시 <b>${d.cards.length}</b></p>
   <div class="actions">
     <button class="btn primary" id="btn-go" type="button">인원 확인 시작</button>
     <button class="btn ghost" id="btn-back" type="button">난이도</button>

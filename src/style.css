@@ -1644,3 +1644,45 @@ kbd {
 .pile-zone.is-empty .zone-head h2 {
   opacity: 0.85;
 }
+
+
+/* 0048 howto steps + seed chip */
+.howto-steps li {
+  border-width: 2px;
+  box-shadow: 0 4px 12px rgba(28,25,23,0.04);
+}
+.howto-ico {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #0f766e;
+  color: #ecfdf5;
+  font-weight: 900;
+  font-size: 15px;
+  box-shadow: 0 4px 10px rgba(15,118,110,0.28);
+}
+.howto-steps li b {
+  font-size: 15px;
+  color: #1c1917;
+}
+.howto-steps li p {
+  font-size: 14px;
+  line-height: 1.45;
+  color: #57534e !important;
+}
+.howto-seed {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: #f5f5f4;
+  border: 1px solid #e7e5e4;
+  font-size: 13px;
+  color: #57534e;
+}
+.howto-seed b { color: #0f766e; }
