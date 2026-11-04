@@ -943,4 +943,40 @@ kbd {
   border-top: 1px dashed #e7e0d4;
 }
 .hub-panel { justify-content: flex-start; }
-.stage-hub .shell-main, .stage-hub #app > .panel { min-height: calc(100vh - 64px); }
+.app-root.stage-hub .stage .hub-panel { min-height: calc(100vh - 72px); }
+
+/* 0026 inspect fill */
+.app-root.stage-inspection,
+.app-root.stage-sorting {
+  max-width: 100%;
+}
+.app-root.stage-inspection .stage {
+  max-width: 1280px;
+  width: 100%;
+  margin: 0 auto;
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.app-root.stage-sorting .stage {
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.app-root.stage-inspection .inspection-panel {
+  max-width: none;
+  padding: 10px 8px 16px;
+}
+.inspect-layout {
+  grid-template-columns: 180px minmax(0, 1fr) 260px !important;
+  gap: 12px !important;
+  min-height: calc(100vh - 100px) !important;
+}
+.check-body strong, .disp strong { font-size: 13px !important; }
+.check-body small, .disp small { font-size: 11px !important; }
+.zoom-viewport {
+  min-height: 620px !important;
+  height: min(82vh, 760px) !important;
+}
+.sorting-desk { max-width: none; }
+.desk-table { max-width: none; }

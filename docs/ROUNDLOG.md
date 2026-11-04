@@ -8,3 +8,6 @@
 | ~00:12 | 0021–0022 | Results meters, kbd hints, wood noise |
 | ~00:13 | 0023 | Diff icons, drag-over, a11y |
 | (cont.) | 0024+ | Density, residual critique, final report prep |
+
+| ~00:42 | 0025 | Sticky, tray contrast, hub foot |
+| ~00:43 | 0026 | Inspect layout fill |
