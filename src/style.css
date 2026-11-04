@@ -1214,3 +1214,37 @@ kbd {
 @media (max-width: 1100px) {
   .result-list { grid-template-columns: 1fr !important; }
 }
+
+/* 0035 sticky kbd legend */
+.desk-sticky .kbd-row {
+  margin-top: 8px !important;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 14px !important;
+  font-weight: 700;
+}
+.desk-sticky kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #1c1917;
+  color: #fef9c3;
+  border: 1px solid #44403c;
+  box-shadow: 0 2px 0 #000;
+  font-family: var(--font);
+  font-size: 12px;
+  font-weight: 800;
+}
+.pile-actions kbd {
+  font-size: 10px;
+  background: #1c1917;
+  color: #fef9c3;
+  padding: 1px 4px;
+  border-radius: 4px;
+  margin-left: 2px;
+}

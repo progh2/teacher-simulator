@@ -31,3 +31,6 @@
 
 ## Round 0034 (01:38 KST)
 - Wide tray 9-col row; denser results grid
+
+## Round 0035 (01:53 KST)
+- Sticky kbd legend chips

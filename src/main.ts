@@ -492,7 +492,8 @@ function renderSorting() {
       <p class="side-note">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
       <aside class="desk-sticky" aria-hidden="true">
         <b>메모</b>
-        <p>뒷면·위아래 먼저 바로잡고 트레이로. F / R / Enter</p>
+        <p>뒷면·위아래 먼저 바로잡고 트레이로.</p>
+        <p class="kbd-row"><kbd>F</kbd> 뒤집기 <kbd>R</kbd> 위아래 <kbd>Enter</kbd> 트레이</p>
       </aside>
     </aside>
     <div class="desk-work ${pile.length ? 'has-pile' : 'no-pile'}">
