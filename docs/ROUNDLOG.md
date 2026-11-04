@@ -37,3 +37,6 @@
 
 ## Round 0036 (01:55 KST)
 - Fix pile card pointer hit-testing; harden e2e select
+
+## Round 0037 (02:09 KST)
+- Howto field-rules callout

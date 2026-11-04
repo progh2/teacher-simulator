@@ -325,6 +325,14 @@ function renderHowto() {
     <li><span class="howto-ico" aria-hidden="true">③</span><div><b>이상 발견</b><p>마킹을 대신 고치지 마세요. 시험 중이면 학생에게 수정을 요청하고, 종료 후면 교과 확인으로 넘깁니다. 돋보기로 마킹을 확대하세요.</p></div></li>
     <li><span class="howto-ico" aria-hidden="true">④</span><div><b>우리 학교 규정</b><p>수정테이프 허용 여부는 학교·시험마다 다릅니다. 이 데모는 <em>우리 학교 규정 기준</em>으로 «들뜸·덧칠»을 이상으로 봅니다.</p></div></li>
   </ol>
+  <aside class="field-rules" aria-label="현장 규칙">
+    <b>현장 규칙 요약</b>
+    <ul>
+      <li><strong>인원</strong> 응시 + 결시 = 재적</li>
+      <li><strong>조치</strong> 정상 · 학생 수정 요청 · 교과 확인</li>
+      <li><strong>마킹</strong> 교사가 대신 고치지 않음</li>
+    </ul>
+  </aside>
   <p class="side-note">시드 ${d.config.seed} · 재적 ${d.config.studentCount} · 응시 ${d.cards.length}</p>
   <div class="actions">
     <button class="btn primary" id="btn-go" type="button">인원 확인 시작</button>

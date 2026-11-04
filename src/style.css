@@ -1270,3 +1270,18 @@ kbd {
   /* keep face flip, but avoid preserve-3d parent issues */
   transform-style: flat;
 }
+
+/* 0037 field-rules callout on howto */
+.field-rules {
+  background: #ecfdf5;
+  border: 1px solid #6ee7b7;
+  border-left: 4px solid #0f766e;
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin: 8px 0 4px;
+  color: #134e4a;
+}
+.field-rules b { display: block; margin-bottom: 6px; font-size: 14px; }
+.field-rules ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; }
+.field-rules li { font-size: 14px; line-height: 1.4; }
+.field-rules strong { color: #0f766e; }
