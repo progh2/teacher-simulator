@@ -315,10 +315,10 @@ function renderHowto() {
 <section class="panel howto-panel" data-stage="howto">
   <h1>하는 방법 · ${DIFFICULTIES[d.config.difficulty].label}</h1>
   <ol class="howto-steps">
-    <li><b>1. 응시 인원 확인</b><p>응시자 + 결시자 = 재적. 결시는 빈칸이 아니라 명렬에 «결시»와 사유를 남깁니다.</p></li>
-    <li><b>2. 정렬·방향</b><p>책상 위 흐트러진 OMR을 번호순 트레이에 올립니다. 뒷면·위아래(180°) 뒤집힌 장을 바로잡습니다.</p></li>
-    <li><b>3. 이상 발견</b><p>마킹을 대신 고치지 마세요. 시험 중이면 학생에게 수정을 요청하고, 종료 후면 교과 확인으로 넘깁니다.</p></li>
-    <li><b>4. 우리 학교 규정</b><p>수정테이프 허용 여부는 학교·시험마다 다릅니다. 이 데모는 <em>우리 학교 규정 기준</em>으로 «들뜸·덧칠»을 이상으로 봅니다.</p></li>
+    <li><span class="howto-ico" aria-hidden="true">①</span><div><b>응시 인원 확인</b><p>응시자 + 결시자 = 재적. 결시는 빈칸이 아니라 명렬에 «결시»와 사유를 남깁니다.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">②</span><div><b>정렬·방향</b><p>책상 위 흐트러진 OMR을 번호순 트레이에 올립니다. 뒷면·위아래(180°) 뒤집힌 장을 바로잡습니다. 단축키 F/R/Enter.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">③</span><div><b>이상 발견</b><p>마킹을 대신 고치지 마세요. 시험 중이면 학생에게 수정을 요청하고, 종료 후면 교과 확인으로 넘깁니다. 돋보기로 마킹을 확대하세요.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">④</span><div><b>우리 학교 규정</b><p>수정테이프 허용 여부는 학교·시험마다 다릅니다. 이 데모는 <em>우리 학교 규정 기준</em>으로 «들뜸·덧칠»을 이상으로 봅니다.</p></div></li>
   </ol>
   <p class="side-note">시드 ${d.config.seed} · 재적 ${d.config.studentCount} · 응시 ${d.cards.length}</p>
   <div class="actions">
@@ -456,11 +456,31 @@ function renderSorting() {
 <section class="sorting-desk" data-stage="sorting">
   <div class="desk-table">
     <div class="desk-window" aria-hidden="true"></div>
+    <div class="desk-props" aria-hidden="true">
+      <svg class="prop-pen" viewBox="0 0 120 24" width="110" height="22">
+        <rect x="4" y="8" width="88" height="8" rx="2" fill="#1e293b"/>
+        <polygon points="92,8 112,12 92,16" fill="#fbbf24"/>
+        <rect x="0" y="7" width="10" height="10" rx="2" fill="#0f766e"/>
+      </svg>
+      <svg class="prop-mug" viewBox="0 0 48 48" width="44" height="44">
+        <ellipse cx="20" cy="40" rx="14" ry="4" fill="rgba(0,0,0,0.25)"/>
+        <rect x="8" y="12" width="24" height="26" rx="3" fill="#fef3c7" stroke="#b45309" stroke-width="2"/>
+        <path d="M32 18h6a6 6 0 010 12h-6" fill="none" stroke="#b45309" stroke-width="2"/>
+        <path d="M14 8c2-4 6-4 8 0M22 8c2-4 6-4 8 0" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+      </svg>
+      <svg class="prop-clip" viewBox="0 0 40 50" width="36" height="44">
+        <rect x="6" y="10" width="28" height="36" rx="2" fill="#fffef8" stroke="#78716c"/>
+        <rect x="10" y="4" width="20" height="12" rx="2" fill="#a8a29e"/>
+        <line x1="12" y1="22" x2="28" y2="22" stroke="#d6d3d1"/>
+        <line x1="12" y1="28" x2="28" y2="28" stroke="#d6d3d1"/>
+        <line x1="12" y1="34" x2="24" y2="34" stroke="#d6d3d1"/>
+      </svg>
+    </div>
     <aside class="desk-roster paper-object">
       ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
       <p class="side-note">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
     </aside>
-    <div class="desk-work">
+    <div class="desk-work ${pile.length ? 'has-pile' : 'no-pile'}">
       <div class="pile-zone ${pile.length ? '' : 'is-empty'}" id="pile-zone">
         <header class="zone-head">
           <h2>흐트러진 더미 <small>${pile.length}</small></h2>

@@ -188,22 +188,18 @@ async function playRun(page, base, diff, seed, shotPrefix) {
     await page.screenshot({ path: join(shotDir, '08-inspection.png') })
     await page.click('#z-in')
     await page.click('#z-in')
-    // move mouse for magnifier (pointer events)
-    const box = await page.locator('#zoom-viewport').boundingBox()
+    // move mouse for magnifier over handwriting / bubbles
+    const target = page.locator('#zoom-canvas .handwrite, #zoom-canvas .digit-bubs').first()
+    const tbox = await target.boundingBox().catch(() => null)
+    const box = tbox || (await page.locator('#zoom-viewport').boundingBox())
     if (box) {
-      const mx = box.x + box.width * 0.28
-      const my = box.y + box.height * 0.22
+      const mx = box.x + box.width * 0.5
+      const my = box.y + box.height * 0.5
       await page.mouse.move(mx, my)
-      await page.locator('#zoom-viewport').dispatchEvent('pointermove', {
-        bubbles: true,
-        clientX: mx,
-        clientY: my,
-      })
-      await page.waitForTimeout(250)
-      await page.evaluate(() => {
-        const m = document.querySelector('#magnifier')
-        if (m) m.hidden = false
-      })
+      await page.locator('#zoom-viewport').evaluate((el, p) => {
+        el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: p.mx, clientY: p.my }))
+      }, { mx, my })
+      await page.waitForTimeout(300)
     }
     await page.screenshot({ path: join(shotDir, '09-inspection-zoom.png') })
     await page.click('#z-reset')

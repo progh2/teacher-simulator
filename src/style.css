@@ -284,8 +284,9 @@ h2 { margin: 0 0 8px; font-size: 1.05rem; }
 }
 .pile-card {
   position: relative;
-  flex: 0 0 268px;
-  width: 268px;
+  flex: 0 0 min(292px, 34%);
+  width: min(292px, 34%);
+  min-width: 240px;
   cursor: grab;
   transition: transform 0.22s ease, filter 0.22s;
   filter: drop-shadow(0 16px 20px rgba(0,0,0,0.5));
@@ -776,3 +777,52 @@ h2 { margin: 0 0 8px; font-size: 1.05rem; }
 
 .tray-fan { transform: rotate(var(--fan, 0deg)); transform-origin: 50% 100%; }
 .tray-slot.slot-ok .tray-fan { filter: drop-shadow(0 0 0 #4ade80) drop-shadow(0 10px 14px rgba(0,0,0,0.35)); }
+
+/* Desk props */
+.desk-props {
+  position: absolute; inset: 0; pointer-events: none; z-index: 1;
+}
+.prop-pen { position: absolute; left: 28%; bottom: 18%; transform: rotate(-18deg); opacity: 0.9; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.35)); }
+.prop-mug { position: absolute; right: 6%; top: 12%; opacity: 0.95; filter: drop-shadow(0 8px 10px rgba(0,0,0,0.35)); }
+.prop-clip { position: absolute; left: 8%; bottom: 10%; transform: rotate(6deg); opacity: 0.85; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.3)); }
+.desk-roster, .desk-work { position: relative; z-index: 2; }
+
+.desk-work.has-pile { grid-template-rows: 1.45fr 0.85fr; }
+.desk-work.no-pile { grid-template-rows: 1fr; }
+
+.stage-headcount .headcount-panel,
+.headcount-panel {
+  min-height: calc(100vh - 88px);
+}
+.stage-headcount .desk-shell,
+.stage-headcount main,
+body.stage-headcount .shell-main {
+  /* noop fallback */
+}
+.hc-layout {
+  min-height: 420px;
+  align-items: stretch;
+}
+.hc-form {
+  align-content: start;
+  box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+}
+
+.howto-steps li { display: flex; gap: 14px; align-items: flex-start; min-height: 88px; }
+.howto-ico {
+  flex: 0 0 44px; height: 44px; border-radius: 12px;
+  display: grid; place-items: center; font-weight: 800; font-size: 18px;
+  background: #ccfbf1; color: #0f766e;
+}
+.howto-steps li div { flex: 1; }
+.howto-steps li b { display: block; margin-bottom: 4px; }
+
+/* tablet density 1024 */
+@media (max-width: 1100px) {
+  .desk-table { grid-template-columns: minmax(210px, 250px) 1fr; padding: 10px; gap: 10px; }
+  .pile-card { flex-basis: 210px; width: 210px; min-width: 190px; margin: 0 -8px 4px; }
+  .tray-slot { flex-basis: 168px; }
+  .thumb-no { font-size: 36px !important; }
+  .thumb-name { font-size: 26px !important; }
+  .desk-props { display: none; }
+}
