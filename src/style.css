@@ -540,3 +540,41 @@ h2 { margin: 0 0 10px; font-size: 1.05rem; }
 
 .grade-msg { color: var(--muted); margin: 4px 0 0; }
 .score-hero .eyebrow { letter-spacing: 0.06em; }
+
+
+/* touch / mobile polish */
+@media (max-width: 960px) {
+  .btn.tiny { min-width: 44px; min-height: 40px; font-size: 14px; }
+  .sort-tools { gap: 8px; }
+  .num-badge { min-width: 44px; height: 44px; font-size: 16px; }
+  .sticky-actions .btn { flex: 1 1 auto; min-height: 44px; }
+  .check { padding: 12px; }
+  .check-body strong { font-size: 14px; }
+}
+
+/* clearer faint marks */
+.bub.filled.faint {
+  background:
+    radial-gradient(circle at 40% 35%, rgba(40,40,40,0.45), rgba(20,20,20,0.2));
+  border: 1.5px dashed #555;
+}
+
+/* inspection card breathing room */
+.inspect-card-pane {
+  background: rgba(255,255,255,0.55);
+  border-radius: 12px;
+  padding: 10px;
+  border: 1px solid var(--paper-line);
+}
+
+/* title stack more OMR-like */
+.preview-card.c1, .preview-card.c3 {
+  background:
+    linear-gradient(180deg, #fff, #fff7f9),
+    repeating-linear-gradient(0deg, transparent 0 9px, rgba(194,59,85,0.15) 10px);
+}
+.preview-card.c1::after, .preview-card.c3::after {
+  content: "OMR";
+  position: absolute; top: 12px; left: 12px;
+  color: #c23b55; font-weight: 800; font-size: 14px;
+}

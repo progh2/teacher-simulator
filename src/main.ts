@@ -589,6 +589,7 @@ function renderResults() {
     <h1><span class="score-num">${s.total}</span> <small>/ ${s.maxTotal}점</small></h1>
     <p class="lead">소요 ${fmtTime(s.timeSeconds)} · 시간 보너스 +${s.timeBonus}</p>
     <p class="grade-msg">${gradeMsg}</p>
+    <p class="side-note" style="text-align:center">시드 ${data.config.seed} · ?seed= 로 같은 문제 공유</p>
   </div>
   <div class="result-grid">
     <div class="result-box">
