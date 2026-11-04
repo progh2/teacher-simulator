@@ -714,7 +714,7 @@ function renderInspection() {
 
   const checks = JUDGABLE_ERRORS.map((e) => {
     const on = selected.has(e)
-    return `<label class="check ${on ? 'on' : ''} ${e === 'ok' ? 'ok' : ''}">
+    return `<label class="check check-${e} ${on ? 'on' : ''} ${e === 'ok' ? 'ok' : ''}" data-err="${e}">
       <input type="checkbox" value="${e}" ${on ? 'checked' : ''}/>
       <span class="check-body"><strong>${ERROR_LABELS[e]}</strong><small>${ERROR_HINTS[e]}</small></span>
     </label>`

@@ -1580,3 +1580,33 @@ kbd {
 .diff-best.has {
   color: #0f766e;
 }
+
+
+/* 0046 stronger error-check selected states */
+.check {
+  border-width: 2px !important;
+  border-radius: 10px !important;
+  padding: 8px 10px !important;
+  transition: background 0.12s, border-color 0.12s, box-shadow 0.12s;
+}
+.check.on:not(.ok) {
+  background: #fff7ed !important;
+  border-color: #fb923c !important;
+  box-shadow: 0 0 0 2px rgba(251,146,60,0.22);
+}
+.check.ok.on {
+  background: #f0fdf4 !important;
+  border-color: #22c55e !important;
+  box-shadow: 0 0 0 2px rgba(34,197,94,0.22);
+}
+.check-body strong {
+  font-size: 13px !important;
+}
+.check-body small {
+  font-size: 11px !important;
+  line-height: 1.35;
+  display: block;
+  margin-top: 2px;
+}
+.check.on:not(.ok) .check-body strong { color: #9a3412; }
+.check.ok.on .check-body strong { color: #166534; }

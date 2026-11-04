@@ -64,3 +64,6 @@
 
 ## Round 0045 (02:54 KST)
 - Difficulty card meta chips
+
+## Round 0046 (02:54 KST)
+- Stronger error-check selected states
