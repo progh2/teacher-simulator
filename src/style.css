@@ -1123,3 +1123,33 @@ kbd {
     flex-basis: clamp(100px, 26vw, 150px) !important;
   }
 }
+
+/* 0031 readable upside-down cards */
+.pile-area { overflow: visible !important; padding: 12px 10px 16px !important; }
+.pile-zone { overflow: hidden; }
+.pile-card { overflow: visible; }
+.pile-chip {
+  position: absolute;
+  z-index: 6;
+  top: 6px; left: 6px;
+  font-size: 11px; font-weight: 800;
+  padding: 3px 7px; border-radius: 6px;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+  transform: none !important;
+}
+.pile-chip.warn { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+.pile-chip.back { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; top: auto; bottom: 8px; }
+.pile-card.has-orient .pile-chip.warn { top: 6px; left: 6px; }
+.pile-card.has-back.has-orient .pile-chip.warn { left: auto; right: 6px; }
+.is-upsidedown .thumb-flags .thumb-badge-orient {
+  transform: rotate(180deg);
+  display: inline-block;
+}
+.is-upsidedown .desk-thumb-face.front {
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+.desk-sticky { font-size: 16px !important; }
+.desk-sticky p { font-size: 16px !important; }
+.desk-roster > .side-note { font-size: 16px !important; }

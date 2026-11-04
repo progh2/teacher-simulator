@@ -411,11 +411,17 @@ function renderSorting() {
       const card = cardsById.get(id)!
       const n = Math.max(1, pile.length)
       const t = n === 1 ? 0 : i / (n - 1) // 0..1
-      const rot = -7 + t * 14 + ((i % 3) - 1) * 2
-      const lift = (i % 5) * 5
+      const rot = -4 + t * 8 + ((i % 3) - 1) * 1.2
+      const lift = (i % 5) * 4 + (card.upsideDown || card.faceDown ? 8 : 0)
+      const z = (card.upsideDown || card.faceDown ? 40 : 0) + i + 1
+      const chips = [
+        card.faceDown ? '<span class="pile-chip back">뒷면</span>' : '',
+        card.upsideDown ? '<span class="pile-chip warn">위아래</span>' : '',
+      ].join('')
       return `
-<div class="desk-card pile-card ${selectedPileId === id ? 'selected' : ''}" data-id="${id}" draggable="true"
-  style="--r:${rot}deg; --lift:${lift}px; --tilt:${2 + (i % 3)}deg; z-index:${i + 1}">
+<div class="desk-card pile-card ${selectedPileId === id ? 'selected' : ''} ${card.upsideDown ? 'has-orient' : ''} ${card.faceDown ? 'has-back' : ''}" data-id="${id}" draggable="true"
+  style="--r:${rot}deg; --lift:${lift}px; --tilt:${1 + (i % 2)}deg; z-index:${z}">
+  ${chips}
   ${renderDeskThumb(card)}
 </div>`
     })
