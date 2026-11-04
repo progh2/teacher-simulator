@@ -485,9 +485,9 @@ function renderSorting() {
         <header class="zone-head">
           <h2>흐트러진 더미 <small>${pile.length}</small></h2>
           <div class="pile-actions toolbar">
-            <button type="button" class="btn tiny" id="btn-flip-sel" ${selectedPileId ? '' : 'disabled'}>선택 카드 뒤집기</button>
-            <button type="button" class="btn tiny" id="btn-spin-sel" ${selectedPileId ? '' : 'disabled'}>선택 위아래</button>
-            <button type="button" class="btn tiny primary" id="btn-to-tray" ${selectedPileId ? '' : 'disabled'}>트레이로 →</button>
+            <button type="button" class="btn tiny" id="btn-flip-sel" ${selectedPileId ? '' : 'disabled'} title="F">선택 뒤집기 <kbd>F</kbd></button>
+            <button type="button" class="btn tiny" id="btn-spin-sel" ${selectedPileId ? '' : 'disabled'} title="R">위아래 <kbd>R</kbd></button>
+            <button type="button" class="btn tiny primary" id="btn-to-tray" ${selectedPileId ? '' : 'disabled'} title="Enter">트레이 <kbd>⏎</kbd></button>
           </div>
         </header>
         <div class="pile-area" id="pile-area">${pileHtml || '<p class="empty">더미가 비었습니다 — 아래 트레이를 확인하세요</p>'}</div>

@@ -840,3 +840,38 @@ body.stage-headcount .shell-main {
 .result-list > h2 { grid-column: 1 / -1; }
 .result-card { margin: 0; }
 .results-panel .score-hero { padding: 18px 12px; background: #fff; border: 1px solid #e7e0d4; border-radius: 16px; }
+
+kbd {
+  display: inline-block; font: 600 10px/1 ui-monospace, monospace;
+  padding: 2px 5px; margin-left: 4px; border-radius: 4px;
+  background: #1c1917; color: #fafaf9; border: 1px solid #44403c;
+}
+.pile-card.selected .desk-thumb-face {
+  box-shadow: 0 0 0 2px #5eead4, 0 18px 28px rgba(0,0,0,0.4);
+}
+.tray-slot.empty-slot .slot-ghost {
+  background: rgba(255,255,255,0.06);
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+/* Drop pulse when slot receives card */
+@keyframes slotIn {
+  from { transform: scale(0.92); opacity: 0.5; }
+  to { transform: scale(1); opacity: 1; }
+}
+.tray-slot.slot-ok .tray-card,
+.tray-slot.slot-bad .tray-card,
+.tray-slot.slot-warn .tray-card {
+  animation: slotIn 0.28s ease;
+}
+
+.desk-table::before {
+  content: "";
+  position: absolute; inset: 0; pointer-events: none; z-index: 0; border-radius: inherit;
+  opacity: 0.12;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.55'/%3E%3C/svg%3E");
+  background-size: 180px 180px;
+  mix-blend-mode: overlay;
+}
+.desk-table > * { position: relative; z-index: 1; }
+.desk-window { z-index: 0 !important; }
