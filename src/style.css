@@ -1732,3 +1732,57 @@ kbd {
   font-size: 15px !important;
   color: #1c1917;
 }
+
+
+/* 0050 hub locked tiles + foot */
+.game-tile.locked {
+  opacity: 1;
+  background: linear-gradient(180deg, #fafaf9, #f5f5f4);
+  border: 1px dashed #d6d3d1;
+  position: relative;
+}
+.game-tile.locked .lock {
+  display: inline-block;
+  margin: 0 0 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #44403c;
+  color: #fafaf9;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.game-tile.locked h2 {
+  color: #57534e;
+}
+.game-tile.locked p {
+  color: #a8a29e;
+}
+.game-tile.open {
+  border: 2px solid #14b8a6;
+  box-shadow: 0 10px 24px rgba(15,118,110,0.12);
+}
+.game-tile.open:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(15,118,110,0.18);
+}
+.hub-foot {
+  margin-top: auto;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1c1917;
+  color: #e7e5e4;
+  font-size: 13px;
+  line-height: 1.45;
+}
+.hub-foot p { margin: 0; color: inherit; }
+.tile-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #ccfbf1;
+  color: #0f766e;
+  font-size: 11px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}

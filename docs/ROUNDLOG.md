@@ -76,3 +76,6 @@
 
 ## Round 0049 (03:07 KST)
 - Inspection numbered dots + student card
+
+## Round 0050 (03:07 KST)
+- Hub locked tiles + dark foot
