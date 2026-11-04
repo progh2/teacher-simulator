@@ -586,7 +586,7 @@ h2 { margin: 0 0 8px; font-size: 1.05rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .card-3d-inner, .pile-card { transition: none; }
+  .card-3d-inner, .pile-card, .tray-card { transition: none; animation: none !important; }
 }
 
 .pile-zone.is-empty {
@@ -917,3 +917,30 @@ kbd {
   box-shadow: 0 12px 32px rgba(0,0,0,0.35); z-index: 100; font-weight: 600;
   max-width: min(520px, 92vw);
 }
+
+/* 0025 sticky + contrast + hub foot */
+.desk-sticky {
+  margin-top: 14px;
+  background: #fef08a;
+  color: #422006;
+  border: 1px solid #ca8a04;
+  box-shadow: 3px 4px 0 rgba(0,0,0,0.25), 0 12px 20px rgba(0,0,0,0.2);
+  padding: 10px 12px;
+  transform: rotate(2.5deg);
+  font-size: 12px;
+  font-weight: 700;
+}
+.desk-sticky b { display: block; font-size: 11px; letter-spacing: 0.06em; margin-bottom: 4px; }
+.desk-sticky p { margin: 0; line-height: 1.35; }
+.slot-label { color: #fff7ed !important; text-shadow: 0 1px 2px rgba(0,0,0,0.55); font-size: 12px !important; }
+.slot-ghost { color: rgba(255,247,237,0.72) !important; font-weight: 700; }
+.hub-foot {
+  margin-top: auto;
+  padding: 14px 4px 4px;
+  text-align: center;
+  color: #78716c;
+  font-size: 13px;
+  border-top: 1px dashed #e7e0d4;
+}
+.hub-panel { justify-content: flex-start; }
+.stage-hub .shell-main, .stage-hub #app > .panel { min-height: calc(100vh - 64px); }

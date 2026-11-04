@@ -269,6 +269,9 @@ function renderHub() {
     <div class="game-tile locked"><span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><path d="M8 26V8l8-3 8 3v18l-8-3-8 3z" stroke="currentColor" stroke-width="2"/><path d="M12 14h8M12 18h6" stroke="currentColor" stroke-width="2"/></svg></span><span class="lock">잠김</span><h2>생기부 검토</h2><p>금지 표현·맞춤법</p></div>
     <div class="game-tile locked"><span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2"/></svg></span><span class="lock">잠김</span><h2>가정통신문 교정</h2><p>날짜·금액·오탈자</p></div>
   </div>
+  <footer class="hub-foot">
+    <p>데모 미니게임 1종 · 나머지 타일은 로드맵 · 시드 고정 연습 가능 (?diff=&amp;seed=)</p>
+  </footer>
 </section>`,
     { stageClass: 'stage-hub' },
   )
@@ -481,6 +484,10 @@ function renderSorting() {
     <aside class="desk-roster paper-object">
       ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
       <p class="side-note">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
+      <aside class="desk-sticky" aria-hidden="true">
+        <b>메모</b>
+        <p>뒷면·위아래 먼저 바로잡고 트레이로. F / R / Enter</p>
+      </aside>
     </aside>
     <div class="desk-work ${pile.length ? 'has-pile' : 'no-pile'}">
       <div class="pile-zone ${pile.length ? '' : 'is-empty'}" id="pile-zone">
