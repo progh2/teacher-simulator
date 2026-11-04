@@ -68,13 +68,14 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
       ? `<div class="tape-trace ${card.correctionTapeBad ? 'tape-bad' : ''} ${hl('correction_tape')}" title="수정테이프"></div>`
       : ''
 
+  const legend = `<div class="ans-legend"><span>문항</span><span>①</span><span>②</span><span>③</span><span>④</span><span>⑤</span></div>`
+  const mid = Math.ceil(card.answers.length / 2)
   const answers = compact
     ? ''
     : `<section class="omr-answers ${hl('duplicate_mark')} ${hl('missing_mark')} ${hl('incomplete_mark')}">
-        <div class="ans-legend"><span>문항</span><span>①</span><span>②</span><span>③</span><span>④</span><span>⑤</span></div>
         <div class="ans-two">
-          ${answerBlock(card, 0, 10)}
-          ${answerBlock(card, 10, 20)}
+          <div class="ans-col">${legend}${answerBlock(card, 0, mid)}</div>
+          <div class="ans-col">${legend}${answerBlock(card, mid, card.answers.length)}</div>
         </div>
       </section>`
 

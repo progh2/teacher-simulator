@@ -1,0 +1,17 @@
+[
+  {
+    "diff": "easy",
+    "total": 151,
+    "max": 152
+  },
+  {
+    "diff": "normal",
+    "total": 223,
+    "max": 224
+  },
+  {
+    "diff": "hard",
+    "total": 295,
+    "max": 296
+  }
+]

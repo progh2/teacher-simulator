@@ -9,19 +9,24 @@
 
 ```bash
 npm install
+npx playwright install chromium   # e2e/스크린샷용 (최초 1회)
 npm run dev          # http://localhost:5173
 npm run build        # dist/ (GitHub Pages용, base './')
 npm run preview      # 빌드 결과 미리보기
-npm run screenshots  # Playwright로 단계별 스크린샷 → docs/screenshots/
+npm run e2e          # easy+normal 만점 플로우 · 콘솔 에러 검사 · docs/screenshots/ 갱신
+npm run test:score   # 시드 고정 채점 스모크 (easy/normal/hard)
+npm run screenshots  # 레거시 단계 샷 스크립트
 ```
 
 시드·난이도: `?diff=easy&seed=20261104` (쉬움/보통/어려움 = easy/normal/hard).
 
+정렬 단축키: `F` 뒤집기 · `R` 위아래 · `Enter` 트레이로.
+
 ## OMR 카드 검사
 
 1. **응시 인원 확인** — 응시자 + 결시자 = 재적. 결시는 빈칸이 아니라 명렬에 «결시»+사유
-2. **정렬** — 책상 더미 → 트레이, 뒷면·위아래(180°) 바로잡기, 번호 오름차순
-3. **검사** — 수기·자릿수 마킹·문형·감독관 확인란·답안을 명렬과 비교. **교사가 마킹을 대신 고치지 않음**
+2. **정렬** — 책상 더미 → 트레이, 뒷면·위아래(180°) 바로잡기, 번호 오름차순 (초록=맞음 / 노랑=방향 / 빨강=순서)
+3. **검사** — 수기·자릿수 마킹·문형·감독관 확인란·답안을 명렬과 비교. 돋보기 렌즈·줌. **교사가 마킹을 대신 고치지 않음**
 4. **조치** — 정상 / 학생에게 수정 요청(시험 중) / 교과 확인으로 넘김(시험 후)
 5. **결과** — 놓침·오판 해설, 점수, 난이도별 최고점(localStorage)
 
@@ -33,7 +38,17 @@ npm run screenshots  # Playwright로 단계별 스크린샷 → docs/screenshots
 
 ## 스크린샷
 
-`docs/screenshots/` — 허브·난이도·인원확인·더미·뒤집기·트레이·검사(줌)·결과·모바일.
+`docs/screenshots/` (1280×800 기준, 태블릿 1024×768·모바일 포함)
+
+| 파일 | 단계 |
+|------|------|
+| 01–03 | 허브·난이도·하우투 |
+| 04 | 인원 확인 |
+| 05–07 | 더미·뒤집기·트레이 |
+| 08–10 | 검사·줌/돋보기·판정 |
+| 11 | 결과 |
+| 12–13 | 모바일·태블릿 |
+| 14 | 오배치 슬롯 피드백 |
 
 ## 이슈 트래킹
 
@@ -48,7 +63,8 @@ npm run screenshots  # Playwright로 단계별 스크린샷 → docs/screenshots
 - Vite + TypeScript, `base: './'` 정적 사이트
 - OMR/명렬은 HTML/CSS 자체 제작 (저작권 에셋 없음)
 - 수기 서체: Nanum Pen Script (OFL, `public/fonts/`)
-- 카드 뒤집기: CSS 3D (Three.js는 의존성에만 있음, 미사용)
+- 카드: CSS 3D desk-thumb (Three.js는 의존성에만 있음, 미사용)
+- E2E: Playwright (`scripts/e2e.mjs`), 디버그 훅 `window.__TS_E2E__`
 
 ## 라이선스
 

@@ -135,11 +135,35 @@ async function playRun(page, base, diff, seed, shotPrefix) {
   page.on('dialog', async (d) => d.accept())
 
   await bootDiff(page, base, diff, seed)
-  if (shotPrefix) await page.screenshot({ path: join(shotDir, `${shotPrefix}-04-headcount.png`) })
+  if (shotPrefix === 'easy') await page.screenshot({ path: join(shotDir, '04-headcount.png') })
 
   await passHeadcount(page)
   if (shotPrefix === 'easy') {
+    
     await page.screenshot({ path: join(shotDir, '05-sorting-pile.png') })
+    // deliberate wrong-order feedback shot
+    {
+      for (let k = 0; k < 2; k++) {
+        const cards = page.locator('.pile-card')
+        const n = await cards.count()
+        if (n < 1) break
+        await cards.nth(n - 1).click({ force: true })
+        await page.waitForTimeout(80)
+        await page.click('#btn-to-tray')
+        await page.waitForTimeout(120)
+      }
+      const trayCount = await page.locator('.tray-slot:not(.empty-slot)').count()
+      if (trayCount < 1) throw new Error('wrong-slot setup: tray empty')
+      await page.locator('.tray-slot').first().scrollIntoViewIfNeeded()
+      await page.waitForTimeout(100)
+      await page.screenshot({ path: join(shotDir, '14-wrong-slot.png') })
+      // return cards to pile
+      while (await page.locator('.tray-tools [data-act="to-pile"]').count()) {
+        await page.locator('.tray-tools [data-act="to-pile"]').first().click()
+        await page.waitForTimeout(50)
+      }
+    }
+
     const pileCards = page.locator('.pile-card')
     const n = await pileCards.count()
     if (n > 0) {

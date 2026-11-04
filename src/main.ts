@@ -468,14 +468,14 @@ function renderSorting() {
       </div>
       <div class="tray-zone ${pile.length ? '' : 'is-expanded'}" id="tray-zone">
         <header class="zone-head">
-          <h2>정렬 트레이 <small>번호 오름차순 · 초록=맞음</small></h2>
+          <h2>정렬 트레이 <small>번호 오름차순 · 초록=맞음 · F/R/Enter</small></h2>
+          <div class="pile-actions toolbar">
+            <button class="btn tiny" id="btn-autosort" type="button">수기번호순</button>
+            <button class="btn tiny primary" id="btn-done-sort" type="button">정렬 완료 · 검사</button>
+          </div>
         </header>
         <div class="tray-rail" id="tray-rail">${trayHtml}</div>
       </div>
-    </div>
-    <div class="actions sticky-actions desk-footer-actions">
-      <button class="btn ghost" id="btn-autosort" type="button">수기번호순(연습)</button>
-      <button class="btn primary" id="btn-done-sort" type="button">정렬 완료 · 검사</button>
     </div>
   </div>
   <div class="toast" id="toast" hidden></div>
@@ -601,6 +601,29 @@ function bindSorting() {
   })
 }
 
+function onGlobalSortKeys(e: KeyboardEvent) {
+  if (stage !== 'sorting') return
+  const tag = (e.target as HTMLElement)?.tagName
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return
+  if (e.key === 'f' || e.key === 'F') {
+    if (!selectedPileId) return
+    e.preventDefault()
+    const c = cardsById.get(selectedPileId)!
+    c.faceDown = !c.faceDown
+    renderSorting()
+  } else if (e.key === 'r' || e.key === 'R') {
+    if (!selectedPileId) return
+    e.preventDefault()
+    const c = cardsById.get(selectedPileId)!
+    c.upsideDown = !c.upsideDown
+    renderSorting()
+  } else if (e.key === 'Enter' && selectedPileId) {
+    e.preventDefault()
+    moveToTray(selectedPileId)
+  }
+}
+window.addEventListener('keydown', onGlobalSortKeys)
+
 function moveToTray(id: string) {
   if (!pile.includes(id)) return
   pile = pile.filter((x) => x !== id)
@@ -690,6 +713,23 @@ function renderInspection() {
   )
   startClock()
   bindInspection(card, order)
+  requestAnimationFrame(fitOmrToViewport)
+}
+
+function fitOmrToViewport() {
+  const vp = app.querySelector<HTMLElement>('#zoom-viewport')
+  const canvas = app.querySelector<HTMLElement>('#zoom-canvas')
+  const cardEl = canvas?.querySelector<HTMLElement>('.omr-card')
+  if (!vp || !canvas || !cardEl || zoom !== 1) return
+  const avail = vp.clientWidth - 24
+  const need = cardEl.scrollWidth || cardEl.offsetWidth
+  if (need > 0 && avail > 0) {
+    const s = Math.min(1.35, Math.max(0.9, avail / need))
+    if (Math.abs(s - 1) > 0.02 && panX === 0 && panY === 0) {
+      zoom = s
+      canvas.style.transform = `translate(0px,0px) scale(${zoom})`
+    }
+  }
 }
 
 function bindInspection(card: OmrCard, order: string[]) {
