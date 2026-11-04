@@ -61,3 +61,6 @@
 
 ## Round 0044 (02:53 KST)
 - Cleaner inspection OMR answers/handwriting
+
+## Round 0045 (02:54 KST)
+- Difficulty card meta chips

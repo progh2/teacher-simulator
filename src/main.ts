@@ -293,13 +293,18 @@ function renderDifficulty() {
       const d = DIFFICULTIES[id]
       const lim = d.timeLimitSec ? `${Math.floor(d.timeLimitSec / 60)}분 제한` : '시간 제한 없음'
       const ico = id === 'easy' ? '🌱' : id === 'normal' ? '📘' : '🔥'
+      const bestScore = best[id]?.score
       return `
 <button type="button" class="diff-card" data-diff="${id}">
   <span class="diff-ico" aria-hidden="true">${ico}</span>
   <h2>${d.label}</h2>
-  <p><b>${d.studentCount}</b>명 · 문항 ${d.questionCount} · 결시 ${d.absentCount}</p>
-  <p>${lim}</p>
-  <p class="muted">최고 ${best[id]?.score ?? '—'}점</p>
+  <ul class="diff-meta">
+    <li><b>${d.studentCount}</b>명</li>
+    <li>문항 ${d.questionCount}</li>
+    <li>결시 ${d.absentCount}</li>
+  </ul>
+  <p class="diff-lim">${lim}</p>
+  <p class="diff-best ${bestScore != null ? 'has' : ''}">최고 ${bestScore ?? '—'}점</p>
 </button>`
     })
     .join('')

@@ -1530,3 +1530,53 @@ kbd {
   font-weight: 800;
   color: #9f1239;
 }
+
+
+/* 0045 difficulty card meta chips */
+.diff-card {
+  text-align: left;
+  padding: 18px 16px !important;
+  border-width: 2px;
+  transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s;
+}
+.diff-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(15,118,110,0.14);
+  border-color: #14b8a6;
+}
+.diff-card .diff-ico {
+  font-size: 28px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+.diff-meta {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.diff-meta li {
+  background: #f0fdfa;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.diff-lim {
+  font-size: 13px;
+  color: #57534e;
+  margin: 4px 0;
+}
+.diff-best {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #a8a29e;
+}
+.diff-best.has {
+  color: #0f766e;
+}
