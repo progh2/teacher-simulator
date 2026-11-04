@@ -40,3 +40,6 @@
 
 ## Round 0037 (02:09 KST)
 - Howto field-rules callout
+
+## Round 0038 (02:22 KST)
+- e2e click+drag regression assert

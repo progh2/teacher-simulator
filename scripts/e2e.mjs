@@ -141,6 +141,33 @@ async function playRun(page, base, diff, seed, shotPrefix) {
   if (shotPrefix === 'easy') {
     
     await page.screenshot({ path: join(shotDir, '05-sorting-pile.png') })
+    // click + drag regression (must hit pile-card, not pile-area)
+    {
+      const card = page.locator('.pile-card').first()
+      const box = await card.boundingBox()
+      if (!box) throw new Error('drag regression: no pile card box')
+      const hit = await page.evaluate(({ x, y }) => {
+        const el = document.elementFromPoint(x, y)
+        return !!el?.closest?.('.pile-card')
+      }, { x: box.x + box.width / 2, y: box.y + box.height / 2 })
+      if (!hit) throw new Error('drag regression: elementFromPoint missed pile-card')
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+      await page.waitForSelector('#btn-to-tray:not([disabled])', { timeout: 3000 })
+      const tray = await page.locator('#tray-rail').boundingBox()
+      if (!tray) throw new Error('drag regression: no tray')
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+      await page.mouse.down()
+      await page.mouse.move(tray.x + 48, tray.y + 36, { steps: 10 })
+      await page.mouse.up()
+      await page.waitForTimeout(150)
+      const filled = await page.locator('.tray-slot:not(.empty-slot)').count()
+      if (filled < 1) throw new Error('drag regression: drop did not fill tray')
+      // return to pile for subsequent shots
+      while (await page.locator('.tray-tools [data-act="to-pile"]').count()) {
+        await page.locator('.tray-tools [data-act="to-pile"]').first().click()
+        await page.waitForTimeout(40)
+      }
+    }
     // deliberate wrong-order feedback shot
     {
       for (let k = 0; k < 2; k++) {
