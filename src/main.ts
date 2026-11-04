@@ -207,7 +207,7 @@ function renderHub() {
     `
 <section class="panel hub-panel" data-stage="hub">
   <div class="hub-banner" aria-hidden="true">
-    <svg viewBox="0 0 960 220" class="hub-scene" role="img">
+    <svg viewBox="0 0 960 280" class="hub-scene" role="img">
       <defs>
         <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fdba74"/>
@@ -219,24 +219,29 @@ function renderHub() {
           <stop offset="0%" stop-color="#5a3424"/><stop offset="50%" stop-color="#7a4a32"/><stop offset="100%" stop-color="#4a2a1c"/>
         </linearGradient>
       </defs>
-      <rect width="960" height="220" fill="url(#wall)"/>
-      <rect x="0" y="168" width="960" height="52" fill="#d6c0a8"/>
+      <rect width="960" height="280" fill="url(#wall)"/>
+      <rect x="0" y="200" width="960" height="80" fill="#d6c0a8"/>
       <rect x="36" y="22" width="170" height="100" rx="4" fill="url(#win)" stroke="#b45309" stroke-width="4"/>
       <line x1="121" y1="22" x2="121" y2="122" stroke="#b45309" stroke-width="3"/>
       <line x1="36" y1="72" x2="206" y2="72" stroke="#b45309" stroke-width="3"/>
-      <rect x="230" y="36" width="110" height="86" fill="#0f766e"/>
+      <rect x="230" y="40" width="110" height="100" fill="#0f766e"/>
+      <ellipse cx="300" cy="230" rx="18" ry="10" fill="#166534"/>
+      <rect x="294" y="200" width="12" height="30" fill="#365314"/>
+      <circle cx="300" cy="192" r="22" fill="#22c55e"/>
+      <circle cx="285" cy="200" r="14" fill="#4ade80"/>
+      <circle cx="316" cy="198" r="12" fill="#86efac"/>
       <rect x="245" y="52" width="80" height="10" fill="#99f6e4"/>
       <rect x="245" y="70" width="62" height="8" fill="#ccfbf1"/>
       <rect x="245" y="88" width="50" height="8" fill="#99f6e4"/>
-      <rect x="360" y="118" width="560" height="78" fill="url(#desk)"/>
-      <rect x="380" y="88" width="78" height="48" fill="#fffef8" stroke="#c23b55" stroke-width="2" transform="rotate(-8 419 112)"/>
-      <rect x="470" y="96" width="78" height="48" fill="#fffef8" stroke="#c23b55" stroke-width="2" transform="rotate(5 509 120)"/>
-      <rect x="560" y="90" width="78" height="48" fill="#be123c" transform="rotate(-3 599 114)"/>
-      <text x="575" y="120" font-size="14" fill="#fff" font-weight="700">답안</text>
-      <rect x="680" y="100" width="50" height="34" fill="#faf6ef" stroke="#78716c" stroke-width="1.5"/>
-      <circle cx="820" cy="70" r="26" fill="#fef3c7" stroke="#ca8a04" stroke-width="3"/>
-      <text x="808" y="78" font-size="22">☕</text>
-      <text x="40" y="198" font-size="15" fill="#57534e">교무실 책상 · 창가 햇살 · 잡무는 여기서 연습</text>
+      <rect x="320" y="150" width="600" height="90" fill="url(#desk)"/>
+      <rect x="360" y="118" width="86" height="54" fill="#fffef8" stroke="#c23b55" stroke-width="2" transform="rotate(-8 403 145)"/>
+      <rect x="460" y="128" width="86" height="54" fill="#fffef8" stroke="#c23b55" stroke-width="2" transform="rotate(5 503 155)"/>
+      <rect x="560" y="124" width="86" height="54" fill="#be123c" transform="rotate(-3 603 151)"/>
+      <text x="578" y="158" font-size="14" fill="#fff" font-weight="700">답안</text>
+      <rect x="680" y="136" width="56" height="38" fill="#faf6ef" stroke="#78716c" stroke-width="1.5"/>
+      <circle cx="840" cy="90" r="30" fill="#fef3c7" stroke="#ca8a04" stroke-width="3"/>
+      <text x="826" y="100" font-size="26">☕</text>
+      <text x="40" y="250" font-size="16" fill="#44403c">교무실 책상 · 창가 햇살 · 잡무는 여기서 연습</text>
     </svg>
   </div>
   <div class="hub-hero">
@@ -250,7 +255,7 @@ function renderHub() {
   </div>
   <div class="game-grid">
     <button type="button" class="game-tile open" id="tile-omr">
-      <span class="tile-icon" aria-hidden="true">▤</span>
+      <span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><rect x="4" y="3" width="24" height="26" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="2" fill="currentColor"/><circle cx="16" cy="10" r="2" fill="currentColor"/><circle cx="22" cy="10" r="2" fill="currentColor"/><circle cx="10" cy="16" r="2" fill="currentColor"/><circle cx="16" cy="16" r="2" fill="currentColor"/><rect x="8" y="22" width="16" height="2" fill="currentColor"/></svg></span>
       <span class="tile-badge">플레이 가능</span>
       <h2>OMR 카드 검사</h2>
       <p>인원 확인 → 정렬·뒤집기 → 이상 발견 → 교과 확인</p>
@@ -260,9 +265,9 @@ function renderHub() {
         <li>어려움 ${best.hard?.score ?? '—'}점</li>
       </ul>
     </button>
-    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true">☑</span><span class="lock">잠김</span><h2>출결 정리</h2><p>전자·종이 출석부 대조</p></div>
-    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true">✎</span><span class="lock">잠김</span><h2>생기부 검토</h2><p>금지 표현·맞춤법</p></div>
-    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true">✉</span><span class="lock">잠김</span><h2>가정통신문 교정</h2><p>날짜·금액·오탈자</p></div>
+    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><rect x="6" y="4" width="20" height="24" rx="2" stroke="currentColor" stroke-width="2"/><path d="M10 12h12M10 17h12M10 22h8" stroke="currentColor" stroke-width="2"/></svg></span><span class="lock">잠김</span><h2>출결 정리</h2><p>전자·종이 출석부 대조</p></div>
+    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><path d="M8 26V8l8-3 8 3v18l-8-3-8 3z" stroke="currentColor" stroke-width="2"/><path d="M12 14h8M12 18h6" stroke="currentColor" stroke-width="2"/></svg></span><span class="lock">잠김</span><h2>생기부 검토</h2><p>금지 표현·맞춤법</p></div>
+    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><rect x="4" y="8" width="24" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M4 10l12 8 12-8" stroke="currentColor" stroke-width="2"/></svg></span><span class="lock">잠김</span><h2>가정통신문 교정</h2><p>날짜·금액·오탈자</p></div>
   </div>
 </section>`,
     { stageClass: 'stage-hub' },
@@ -401,11 +406,11 @@ function renderSorting() {
       const card = cardsById.get(id)!
       const n = Math.max(1, pile.length)
       const t = n === 1 ? 0 : i / (n - 1) // 0..1
-      const rot = -16 + t * 32 + ((i % 3) - 1) * 4
-      const lift = (i % 5) * 6
+      const rot = -12 + t * 24 + ((i % 3) - 1) * 3
+      const lift = (i % 5) * 5
       return `
 <div class="desk-card pile-card ${selectedPileId === id ? 'selected' : ''}" data-id="${id}" draggable="true"
-  style="--r:${rot}deg; --lift:${lift}px; --tilt:${3 + (i % 3)}deg; z-index:${i + 1}">
+  style="--r:${rot}deg; --lift:${lift}px; --tilt:${2 + (i % 3)}deg; z-index:${i + 1}">
   ${renderDeskThumb(card)}
 </div>`
     })
@@ -858,14 +863,14 @@ function bindInspection(card: OmrCard, order: string[]) {
       const rect = vp.getBoundingClientRect()
       const x = e.clientX - rect.left
       const y = e.clientY - rect.top
-      const size = 140
+      const size = 168
       mag.hidden = false
       mag.style.width = `${size}px`
       mag.style.height = `${size}px`
       mag.style.left = `${x - size / 2}px`
       mag.style.top = `${y - size / 2}px`
       // clone scaled view under lens
-      const scale = 2.2 * zoom
+      const scale = 2.4 * zoom
       const ox = -(x - panX) * (scale / zoom) + size / 2
       const oy = -(y - panY) * (scale / zoom) + size / 2
       mag.innerHTML = `<div class="mag-inner" style="transform:translate(${ox}px,${oy}px) scale(${scale})">${canvas.innerHTML}</div>`

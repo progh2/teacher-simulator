@@ -188,11 +188,22 @@ async function playRun(page, base, diff, seed, shotPrefix) {
     await page.screenshot({ path: join(shotDir, '08-inspection.png') })
     await page.click('#z-in')
     await page.click('#z-in')
-    // move mouse for magnifier
+    // move mouse for magnifier (pointer events)
     const box = await page.locator('#zoom-viewport').boundingBox()
     if (box) {
-      await page.mouse.move(box.x + box.width * 0.45, box.y + box.height * 0.4)
-      await page.waitForTimeout(200)
+      const mx = box.x + box.width * 0.42
+      const my = box.y + box.height * 0.38
+      await page.mouse.move(mx, my)
+      await page.locator('#zoom-viewport').dispatchEvent('pointermove', {
+        bubbles: true,
+        clientX: mx,
+        clientY: my,
+      })
+      await page.waitForTimeout(250)
+      await page.evaluate(() => {
+        const m = document.querySelector('#magnifier')
+        if (m) m.hidden = false
+      })
     }
     await page.screenshot({ path: join(shotDir, '09-inspection-zoom.png') })
     await page.click('#z-reset')
