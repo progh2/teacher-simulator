@@ -212,6 +212,9 @@ async function playRun(page, base, diff, seed, shotPrefix) {
   await page.click('#btn-submit')
   await page.waitForSelector('[data-stage="results"]')
   if (shotPrefix === 'easy') {
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await page.locator('.score-hero, [data-stage="results"]').first().scrollIntoViewIfNeeded()
+    await page.waitForTimeout(100)
     await page.screenshot({ path: join(shotDir, '11-results.png') })
   }
 

@@ -947,7 +947,7 @@ function renderResults() {
   <header><b>${String(st.number).padStart(2, '0')} ${st.name}</b>
     <span class="tag ${cs.perfect ? 'good' : 'bad'}">${cs.perfect ? '정확' : '미흡'}</span>
   </header>
-  <div class="result-mini">${renderOmrFront(card, { student: st, highlight: hl, compact: false })}</div>
+  <div class="result-mini">${renderOmrFront(card, { student: st, highlight: hl, compact: true })}</div>
   <div class="explain hit">맞춤: ${cs.hit.map((e) => ERROR_LABELS[e]).join(', ') || '—'}</div>
   ${cs.missed.length ? `<div class="explain miss">놓침: ${cs.missed.map((e) => `${ERROR_LABELS[e]} — ${ERROR_HINTS[e]}`).join(' / ')}</div>` : ''}
   ${cs.falsePositive.length ? `<div class="explain fp">잘못 선택: ${cs.falsePositive.map((e) => ERROR_LABELS[e]).join(', ')}</div>` : ''}
@@ -963,15 +963,24 @@ function renderResults() {
   <div class="score-hero">
     <p class="eyebrow">결과 · ${DIFFICULTIES[d.config.difficulty].label} · ${grade}${s.timedOut ? ' · 시간초과' : ''}</p>
     <h1><span class="score-num">${s.total}</span> <small>/ ${s.maxTotal}</small></h1>
+    <div class="score-bar" aria-hidden="true"><i style="width:${Math.round(ratio*100)}%"></i></div>
     <p class="lead">소요 ${fmtTime(s.timeSeconds)} · 보너스 +${s.timeBonus} · 시드 ${d.config.seed}</p>
   </div>
   <div class="result-grid">
-    <div class="result-box"><h2>인원</h2><p>${s.headcountOk ? '✅' : '❌'} +${s.headcountPoints}/20</p></div>
-    <div class="result-box"><h2>정렬</h2>
-      <p>${s.sortOrderOk ? '✅' : '❌'} 순서 · ${s.sortOrientationOk ? '✅' : '❌'} 방향 · +${s.sortPoints}/50</p>
+    <div class="result-box">
+      <h2>인원</h2>
+      <p>${s.headcountOk ? '✅' : '❌'} +${s.headcountPoints}/20</p>
+      <div class="meter" aria-hidden="true"><i style="width:${(s.headcountPoints/20)*100}%"></i></div>
     </div>
-    <div class="result-box"><h2>검사</h2>
+    <div class="result-box">
+      <h2>정렬</h2>
+      <p>${s.sortOrderOk ? '✅' : '❌'} 순서 · ${s.sortOrientationOk ? '✅' : '❌'} 방향 · +${s.sortPoints}/50</p>
+      <div class="meter" aria-hidden="true"><i style="width:${(s.sortPoints/50)*100}%"></i></div>
+    </div>
+    <div class="result-box">
+      <h2>검사</h2>
       <p>+${s.inspectionPoints} · 완벽 ${s.inspection.filter((c) => c.perfect).length}/${s.inspection.length}</p>
+      <div class="meter" aria-hidden="true"><i style="width:${s.inspection.length ? (s.inspection.filter((c)=>c.perfect).length/s.inspection.length)*100 : 0}%"></i></div>
     </div>
   </div>
   <div class="result-list"><h2>카드별 해설</h2>${rows}</div>

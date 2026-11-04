@@ -826,3 +826,17 @@ body.stage-headcount .shell-main {
   .thumb-name { font-size: 26px !important; }
   .desk-props { display: none; }
 }
+
+.score-bar, .meter {
+  height: 10px; border-radius: 999px; background: #e7e5e4; overflow: hidden; margin: 10px auto 0; max-width: 320px;
+}
+.meter { max-width: none; margin-top: 8px; }
+.score-bar i, .meter i {
+  display: block; height: 100%; background: linear-gradient(90deg, #0f766e, #2dd4bf); border-radius: inherit;
+}
+.result-mini { max-height: 220px; overflow: hidden; border: 1px solid #e7e0d4; border-radius: 8px; background: #fff; }
+.result-mini .omr-card { transform: scale(0.92); transform-origin: top left; width: 108%; }
+.result-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+.result-list > h2 { grid-column: 1 / -1; }
+.result-card { margin: 0; }
+.results-panel .score-hero { padding: 18px 12px; background: #fff; border: 1px solid #e7e0d4; border-radius: 16px; }
