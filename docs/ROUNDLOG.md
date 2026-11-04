@@ -28,3 +28,6 @@
 
 ## Round 0033 (01:38 KST)
 - Inspection: larger labels, sticky submit, bigger magnifier
+
+## Round 0034 (01:38 KST)
+- Wide tray 9-col row; denser results grid

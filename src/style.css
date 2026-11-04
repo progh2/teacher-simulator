@@ -1191,3 +1191,26 @@ kbd {
   font-size: 15px;
   font-weight: 700;
 }
+
+/* 0034 tray single-row on wide + denser results */
+@media (min-width: 1180px) {
+  .tray-rail {
+    grid-template-columns: repeat(9, minmax(0, 1fr)) !important;
+  }
+}
+.result-list {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px !important;
+}
+.result-list > h2 {
+  grid-column: 1 / -1;
+}
+.result-mini { max-height: 160px !important; }
+.result-mini .omr-card {
+  transform: scale(0.78) !important;
+  width: 128% !important;
+}
+@media (max-width: 1100px) {
+  .result-list { grid-template-columns: 1fr !important; }
+}
