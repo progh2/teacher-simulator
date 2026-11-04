@@ -46,3 +46,6 @@
 
 ## Round 0039 (02:23 KST)
 - Stronger slot-bad/warn chips; orient card gaps
+
+## Round 0040 (02:37 KST)
+- Headcount formula bar + larger inputs

@@ -1330,3 +1330,23 @@ kbd {
 .desk-table {
   padding-right: 12px !important;
 }
+
+/* 0040 headcount formula bar */
+.hc-formula {
+  margin: 4px 0 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #0f766e;
+  color: #ecfdf5;
+  font-weight: 800;
+  font-size: 16px;
+  text-align: center;
+  letter-spacing: 0.04em;
+}
+.hc-hint { font-size: 15px !important; font-weight: 600; }
+.hc-form input {
+  width: 120px !important;
+  padding: 10px !important;
+  font-size: 16px;
+  font-weight: 700;
+}

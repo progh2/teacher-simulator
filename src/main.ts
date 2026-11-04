@@ -362,7 +362,8 @@ function renderHeadcount() {
       <label>재적 <input name="enrolled" type="number" min="0" required /></label>
       <label>응시자 <input name="present" type="number" min="0" required /></label>
       <label>결시자 <input name="absent" type="number" min="0" required /></label>
-      <p class="side-note">힌트: 명렬 «결시» 행을 세요. (정답은 제출 후)</p>
+      <p class="hc-formula" aria-hidden="true">응시 + 결시 = 재적</p>
+      <p class="side-note hc-hint">힌트: 명렬 «결시» 행을 세요. (정답은 제출 후)</p>
       <button class="btn primary" type="submit">확인 · 정렬로</button>
     </form>
   </div>
