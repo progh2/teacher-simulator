@@ -49,3 +49,6 @@
 
 ## Round 0040 (02:37 KST)
 - Headcount formula bar + larger inputs
+
+## Round 0041 (02:51 KST)
+- Hub progress chips + louder roster absent marks

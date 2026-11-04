@@ -252,6 +252,11 @@ function renderHub() {
       <span>클리어한 난이도 <b>${played}/3</b></span>
       <span>OMR 최고 <b>${Math.max(best.easy?.score ?? 0, best.normal?.score ?? 0, best.hard?.score ?? 0) || '—'}</b></span>
     </div>
+    <div class="hub-progress" aria-label="난이도별 진행">
+      <span class="hp-chip ${best.easy ? 'done' : ''}">쉬움 ${best.easy ? best.easy.score + '점' : '미클리어'}</span>
+      <span class="hp-chip ${best.normal ? 'done' : ''}">보통 ${best.normal ? best.normal.score + '점' : '미클리어'}</span>
+      <span class="hp-chip ${best.hard ? 'done' : ''}">어려움 ${best.hard ? best.hard.score + '점' : '미클리어'}</span>
+    </div>
   </div>
   <div class="game-grid">
     <button type="button" class="game-tile open" id="tile-omr">
