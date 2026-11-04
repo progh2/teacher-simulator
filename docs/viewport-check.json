@@ -1,0 +1,36 @@
+{
+  "desktop": {
+    "errors": [],
+    "sorting": {
+      "overflowX": false,
+      "scrollW": 1280,
+      "docW": 1280,
+      "readable": true,
+      "stage": "sorting"
+    },
+    "inspection": {
+      "overflowX": false,
+      "scrollW": 1280,
+      "docW": 1280,
+      "readable": true,
+      "stage": "inspection"
+    }
+  },
+  "tablet": {
+    "errors": [],
+    "sorting": {
+      "overflowX": false,
+      "scrollW": 1024,
+      "docW": 1024,
+      "readable": true,
+      "stage": "sorting"
+    },
+    "inspection": {
+      "overflowX": false,
+      "scrollW": 1024,
+      "docW": 1024,
+      "readable": true,
+      "stage": "inspection"
+    }
+  }
+}

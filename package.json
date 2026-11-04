@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "screenshots": "node scripts/screenshots.mjs",
     "e2e": "node scripts/e2e.mjs",
-    "test:score": "node scripts/score-smoke.mjs"
+    "test:score": "node scripts/score-smoke.mjs",
+    "test:viewport": "node scripts/viewport-check.mjs"
   },
   "devDependencies": {
     "playwright": "^1.64.1",

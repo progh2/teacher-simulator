@@ -13,3 +13,4 @@
 | ~00:43 | 0026 | Inspect layout fill |
 | ~00:56 | 0027 | Roster ink, mag assert |
 | ~01:10 | 0028 | Orient badges on thumbs |
+| ~01:24 | 0029 | Viewport check script |
