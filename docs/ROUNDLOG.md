@@ -85,3 +85,8 @@
 
 ## Round 0052 (03:13 KST)
 - Results card explain tags
+
+## Wrap (03:13 KST)
+- Rounds 0051–0052 done; e2e / viewport / score-smoke all green
+- Screenshots regenerated via e2e
+- README + docs/issues README updated
