@@ -436,7 +436,8 @@ function renderSorting() {
   <span class="slot-label">슬롯 ${i + 1} · 예상 ${String(stu.number).padStart(2, '0')}
     <em>${ok ? '✓' : orderOk ? '방향!' : '순서✗'}</em>
   </span>
-  <div class="desk-card tray-card" data-id="${id}" data-tray-index="${i}" draggable="true">
+  <div class="desk-card tray-card tray-fan" data-id="${id}" data-tray-index="${i}" draggable="true"
+    style="--fan:${((i % 5) - 2) * 1.6}deg">
     ${renderDeskThumb(card)}
   </div>
   <div class="tray-tools">
@@ -863,17 +864,19 @@ function bindInspection(card: OmrCard, order: string[]) {
       const rect = vp.getBoundingClientRect()
       const x = e.clientX - rect.left
       const y = e.clientY - rect.top
-      const size = 168
+      const size = 180
       mag.hidden = false
       mag.style.width = `${size}px`
       mag.style.height = `${size}px`
-      mag.style.left = `${x - size / 2}px`
-      mag.style.top = `${y - size / 2}px`
-      // clone scaled view under lens
-      const scale = 2.4 * zoom
-      const ox = -(x - panX) * (scale / zoom) + size / 2
-      const oy = -(y - panY) * (scale / zoom) + size / 2
-      mag.innerHTML = `<div class="mag-inner" style="transform:translate(${ox}px,${oy}px) scale(${scale})">${canvas.innerHTML}</div>`
+      mag.style.left = `${Math.max(4, Math.min(rect.width - size - 4, x - size / 2))}px`
+      mag.style.top = `${Math.max(4, Math.min(rect.height - size - 4, y - size / 2))}px`
+      // Content coords under cursor (canvas transform: translate(pan) scale(zoom))
+      const cx = (x - panX) / Math.max(0.01, zoom)
+      const cy = (y - panY) / Math.max(0.01, zoom)
+      const S = 2.6
+      const ox = size / 2 - cx * S
+      const oy = size / 2 - cy * S
+      mag.innerHTML = `<div class="mag-inner" style="transform:translate(${ox}px,${oy}px) scale(${S}); transform-origin:0 0">${canvas.innerHTML}</div>`
     }
     vp.addEventListener('pointermove', (e) => {
       if (!dragging) syncMag(e)

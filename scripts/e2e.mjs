@@ -191,8 +191,8 @@ async function playRun(page, base, diff, seed, shotPrefix) {
     // move mouse for magnifier (pointer events)
     const box = await page.locator('#zoom-viewport').boundingBox()
     if (box) {
-      const mx = box.x + box.width * 0.42
-      const my = box.y + box.height * 0.38
+      const mx = box.x + box.width * 0.28
+      const my = box.y + box.height * 0.22
       await page.mouse.move(mx, my)
       await page.locator('#zoom-viewport').dispatchEvent('pointermove', {
         bubbles: true,
