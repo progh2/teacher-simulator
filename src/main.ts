@@ -1,16 +1,25 @@
 import './style.css'
 import {
+  expectedDisposition,
   expectedOrder,
   generateGame,
+  headcountTruth,
+  parseDifficultyFromUrl,
   parseSeedFromUrl,
   studentForCard,
 } from './game/generator'
 import { computeScore, scoreInspection, scoreSort } from './game/scoring'
-import { renderCardShell, renderOmrFront } from './game/omrRender'
+import { renderCardShell, renderOmrFront, renderRosterSheet } from './game/omrRender'
+import { loadBest, saveBest } from './game/storage'
 import {
+  DIFFICULTIES,
+  DISPOSITION_HINTS,
+  DISPOSITION_LABELS,
   ERROR_HINTS,
   ERROR_LABELS,
   JUDGABLE_ERRORS,
+  type DifficultyId,
+  type Disposition,
   type ErrorType,
   type GameData,
   type GameScore,
@@ -22,28 +31,32 @@ import {
 
 const app = document.querySelector<HTMLDivElement>('#app')!
 
-let data: GameData
-let stage: Stage = 'title'
-let order: string[] = []
+let stage: Stage = 'hub'
+let _difficulty: DifficultyId = parseDifficultyFromUrl() ?? 'easy'
+let data: GameData | null = null
 let cardsById = new Map<string, OmrCard>()
-let judgments = new Map<string, ErrorType[]>()
+/** unsorted pile (messy) */
+let pile: string[] = []
+/** sorted tray order */
+let tray: string[] = []
+let selectedPileId: string | null = null
+let judgments = new Map<string, { selected: ErrorType[]; disposition: Disposition }>()
 let inspectIndex = 0
 let startedAt = 0
+let headcountOk = false
 let sortResult: SortResult | null = null
 let finalScore: GameScore | null = null
-let dragFrom: number | null = null
+let timedOut = false
+let zoom = 1
+let panX = 0
+let panY = 0
+let timerId: number | null = null
 
-function boot(seed?: number) {
-  data = generateGame({ seed: seed ?? parseSeedFromUrl() })
-  cardsById = new Map(data.cards.map((c) => [c.id, c]))
-  order = data.cards.map((c) => c.id)
-  judgments = new Map()
-  inspectIndex = 0
-  sortResult = null
-  finalScore = null
-  startedAt = 0
-  stage = 'title'
-  render()
+function clearTimer() {
+  if (timerId != null) {
+    clearInterval(timerId)
+    timerId = null
+  }
 }
 
 function elapsed(): number {
@@ -53,209 +66,232 @@ function elapsed(): number {
 
 function fmtTime(s: number): string {
   const m = Math.floor(s / 60)
-  const r = s % 60
-  return `${m}:${String(r).padStart(2, '0')}`
+  return `${m}:${String(s % 60).padStart(2, '0')}`
+}
+
+function startClock() {
+  clearTimer()
+  timerId = window.setInterval(() => {
+    const el = app.querySelector('#timer')
+    if (el) el.textContent = fmtTime(elapsed())
+    const lim = data?.config.timeLimitSec
+    if (lim != null && elapsed() >= lim && stage !== 'results') {
+      timedOut = true
+      finishGame()
+    }
+  }, 500)
+}
+
+function bootHub() {
+  clearTimer()
+  stage = 'hub'
+  data = null
+  render()
+}
+
+function startRun(diff: DifficultyId, seed?: number) {
+  _difficulty = diff
+  data = generateGame(diff, seed ?? parseSeedFromUrl())
+  cardsById = new Map(data.cards.map((c) => [c.id, c]))
+  pile = data.cards.map((c) => c.id)
+  tray = []
+  selectedPileId = null
+  judgments = new Map()
+  inspectIndex = 0
+  startedAt = 0
+  headcountOk = false
+  sortResult = null
+  finalScore = null
+  timedOut = false
+  zoom = 1
+  panX = 0
+  panY = 0
+  history.replaceState(null, '', `?diff=${_difficulty}&seed=${data.config.seed}`)
+  stage = 'howto'
+  render()
 }
 
 function go(next: Stage) {
   stage = next
-  if (next === 'sorting' && !startedAt) startedAt = Date.now()
+  if ((next === 'headcount' || next === 'sorting') && !startedAt) {
+    startedAt = Date.now()
+    startClock()
+  }
   render()
 }
 
 function render() {
   switch (stage) {
-    case 'title':
-      renderTitle()
-      break
+    case 'hub':
+      return renderHub()
+    case 'difficulty':
+      return renderDifficulty()
     case 'howto':
-      renderHowto()
-      break
+      return renderHowto()
+    case 'headcount':
+      return renderHeadcount()
     case 'sorting':
-      renderSorting()
-      break
+      return renderSorting()
     case 'inspection':
-      renderInspection()
-      break
+      return renderInspection()
     case 'results':
-      renderResults()
-      break
+      return renderResults()
   }
 }
 
-function shell(body: string, opts?: { stageClass?: string; top?: string }) {
+function shell(body: string, opts?: { top?: string; desk?: boolean; stageClass?: string }) {
   app.innerHTML = `
-<div class="desk ${opts?.stageClass ?? ''}">
-  <div class="desk-wood"></div>
+<div class="app-root ${opts?.desk ? 'has-desk' : ''} ${opts?.stageClass ?? ''}">
+  ${opts?.desk ? '<div class="desk-bg" aria-hidden="true"></div>' : '<div class="hub-bg" aria-hidden="true"></div>'}
   <header class="topbar">
-    <div class="brand">
+    <button type="button" class="brand-btn" id="btn-hub" title="허브로">
       <span class="logo">✎</span>
-      <div>
-        <strong>교사 시뮬레이터</strong>
-        <small>잡무 연습 · OMR 카드 검사</small>
-      </div>
-    </div>
+      <div><strong>교사 시뮬레이터</strong><small>잡무 연습 모음</small></div>
+    </button>
     ${opts?.top ?? ''}
   </header>
   <main class="stage">${body}</main>
 </div>`
+  app.querySelector('#btn-hub')?.addEventListener('click', () => {
+    if (stage === 'hub' || confirm('허브로 돌아갈까요? 진행 중이면 저장되지 않습니다.')) bootHub()
+  })
 }
 
-function renderTitle() {
+function renderHub() {
+  const best = loadBest()
   shell(
     `
-<section class="panel title-panel" data-stage="title">
-  <div class="title-hero">
-    <div class="stack-preview" aria-hidden="true">
-      <div class="preview-card c1"></div>
-      <div class="preview-card c2"></div>
-      <div class="preview-card c3"></div>
-    </div>
-    <div class="title-copy">
-      <p class="eyebrow">미니게임 01</p>
-      <h1>OMR 카드 검사</h1>
-      <p class="lead">
-        시험이 끝나면 책상 위에 OMR이 산더미처럼 쌓입니다.
-        뒤집힌 장을 바로 세우고, 명렬표 순서로 맞춘 뒤,
-        수기·마킹·명렬이 어긋난 장을 찾아내세요.
-      </p>
-      <ul class="title-stats">
-        <li><b>${data.config.studentCount}</b>명 명렬</li>
-        <li><b>${data.config.questionCount}</b>문항</li>
-        <li>시드 <b>${data.config.seed}</b></li>
+<section class="panel hub-panel" data-stage="hub">
+  <div class="hub-hero">
+    <p class="eyebrow">Teacher Simulator</p>
+    <h1>교사의 잡무,<br/>미니게임으로 손에 익히기</h1>
+    <p class="lead">예비교사·실습생·학생을 위한 현장 잡무 연습. 서류는 진짜처럼, 실수는 여기서.</p>
+  </div>
+  <div class="game-grid">
+    <button type="button" class="game-tile open" id="tile-omr">
+      <span class="tile-badge">플레이 가능</span>
+      <h2>OMR 카드 검사</h2>
+      <p>인원 확인 → 정렬·뒤집기 → 이상 발견 → 교과 확인</p>
+      <ul class="best-line">
+        <li>쉬움 최고 ${best.easy?.score ?? '—'}점</li>
+        <li>보통 ${best.normal?.score ?? '—'}점</li>
+        <li>어려움 ${best.hard?.score ?? '—'}점</li>
       </ul>
-      <div class="actions">
-        <button class="btn primary" id="btn-start" type="button">연습 시작</button>
-        <button class="btn ghost" id="btn-howto" type="button">하는 방법</button>
-        <button class="btn ghost" id="btn-reseed" type="button">다른 시드</button>
-      </div>
-    </div>
+    </button>
+    <div class="game-tile locked"><span class="lock">잠김</span><h2>출결 정리</h2><p>전자·종이 출석부 대조</p></div>
+    <div class="game-tile locked"><span class="lock">잠김</span><h2>생기부 검토</h2><p>금지 표현·맞춤법</p></div>
+    <div class="game-tile locked"><span class="lock">잠김</span><h2>가정통신문 교정</h2><p>날짜·금액·오탈자</p></div>
   </div>
 </section>`,
-    { stageClass: 'stage-title' },
+    { stageClass: 'stage-hub' },
   )
+  app.querySelector('#tile-omr')!.addEventListener('click', () => {
+    stage = 'difficulty'
+    render()
+  })
+}
 
-  app.querySelector('#btn-start')!.addEventListener('click', () => go('sorting'))
-  app.querySelector('#btn-howto')!.addEventListener('click', () => go('howto'))
-  app.querySelector('#btn-reseed')!.addEventListener('click', () => {
-    const next = Math.floor(Math.random() * 1e9) || 1
-    history.replaceState(null, '', `?seed=${next}`)
-    boot(next)
+function renderDifficulty() {
+  const best = loadBest()
+  const cards = (Object.keys(DIFFICULTIES) as DifficultyId[])
+    .map((id) => {
+      const d = DIFFICULTIES[id]
+      const lim = d.timeLimitSec ? `${Math.floor(d.timeLimitSec / 60)}분 제한` : '시간 제한 없음'
+      return `
+<button type="button" class="diff-card" data-diff="${id}">
+  <h2>${d.label}</h2>
+  <p><b>${d.studentCount}</b>명 · 문항 ${d.questionCount} · 결시 ${d.absentCount}</p>
+  <p>${lim}</p>
+  <p class="muted">최고 ${best[id]?.score ?? '—'}점</p>
+</button>`
+    })
+    .join('')
+  shell(
+    `
+<section class="panel" data-stage="difficulty">
+  <h1>OMR 카드 검사 · 난이도</h1>
+  <p class="lead">재적 인원에 따라 책상 위 카드 더미가 달라집니다.</p>
+  <div class="diff-grid">${cards}</div>
+  <div class="actions"><button class="btn ghost" id="btn-back" type="button">허브</button></div>
+</section>`,
+  )
+  app.querySelector('#btn-back')!.addEventListener('click', bootHub)
+  app.querySelectorAll<HTMLButtonElement>('[data-diff]').forEach((b) => {
+    b.addEventListener('click', () => startRun(b.dataset.diff as DifficultyId))
   })
 }
 
 function renderHowto() {
+  const d = data!
   shell(
     `
 <section class="panel howto-panel" data-stage="howto">
-  <h1>하는 방법</h1>
+  <h1>하는 방법 · ${DIFFICULTIES[d.config.difficulty].label}</h1>
   <ol class="howto-steps">
-    <li>
-      <b>1. 정렬</b>
-      <p>왼쪽 명렬표를 보고 오른쪽 OMR을 <em>번호 오름차순</em>으로 맞춥니다.
-      카드는 드래그하거나 ↑↓ 버튼으로 옮깁니다.</p>
-    </li>
-    <li>
-      <b>2. 뒤집기</b>
-      <p>뒷면만 보이는 카드는 클릭(또는 «뒤집기»)해서 앞면으로 만듭니다.
-      모든 카드가 앞면을 봐야 다음 단계로 갈 수 있습니다.</p>
-    </li>
-    <li>
-      <b>3. 검사</b>
-      <p>카드마다 수기 성명·학년·반·번호와 마킹, 과목코드, 답안 마킹을 명렬표와 비교합니다.
-      발견한 오류를 모두 고르거나, 문제없으면 «정상»을 고릅니다.</p>
-    </li>
-    <li>
-      <b>4. 채점</b>
-      <p>놓친 오류와 잘못 찍은 항목을 설명해 줍니다. 같은 시드로 다시 연습할 수 있습니다.</p>
-    </li>
+    <li><b>1. 응시 인원 확인</b><p>응시자 + 결시자 = 재적. 결시는 빈칸이 아니라 명렬에 «결시»와 사유를 남깁니다.</p></li>
+    <li><b>2. 정렬·방향</b><p>책상 위 흐트러진 OMR을 번호순 트레이에 올립니다. 뒷면·위아래(180°) 뒤집힌 장을 바로잡습니다.</p></li>
+    <li><b>3. 이상 발견</b><p>마킹을 대신 고치지 마세요. 시험 중이면 학생에게 수정을 요청하고, 종료 후면 교과 확인으로 넘깁니다.</p></li>
+    <li><b>4. 우리 학교 규정</b><p>수정테이프 허용 여부는 학교·시험마다 다릅니다. 이 데모는 <em>우리 학교 규정 기준</em>으로 «들뜸·덧칠»을 이상으로 봅니다.</p></li>
   </ol>
+  <p class="side-note">시드 ${d.config.seed} · 재적 ${d.config.studentCount} · 응시 ${d.cards.length}</p>
   <div class="actions">
-    <button class="btn primary" id="btn-go" type="button">알겠어요, 시작!</button>
-    <button class="btn ghost" id="btn-back" type="button">돌아가기</button>
+    <button class="btn primary" id="btn-go" type="button">인원 확인 시작</button>
+    <button class="btn ghost" id="btn-back" type="button">난이도</button>
   </div>
 </section>`,
-    { stageClass: 'stage-howto' },
   )
-  app.querySelector('#btn-go')!.addEventListener('click', () => go('sorting'))
-  app.querySelector('#btn-back')!.addEventListener('click', () => go('title'))
+  app.querySelector('#btn-go')!.addEventListener('click', () => go('headcount'))
+  app.querySelector('#btn-back')!.addEventListener('click', () => {
+    stage = 'difficulty'
+    render()
+  })
 }
 
-function renderSorting() {
-  const stillDown = order.filter((id) => cardsById.get(id)?.faceDown).length
-  const top = `
-<div class="progress">
-  <span class="pill">1 / 2 · 정렬</span>
-  <span class="timer" id="timer">${fmtTime(elapsed())}</span>
-  <span class="hint-pill">${stillDown ? `뒤집힌 카드 ${stillDown}장` : '모두 앞면'}</span>
-</div>`
-
-  const rosterHtml = `
-<table class="roster">
-  <caption>학생 명렬표 · ${data.config.grade}학년 ${data.config.classNo}반</caption>
-  <thead><tr><th>번호</th><th>성명</th><th>수험번호</th></tr></thead>
-  <tbody>
-    ${data.roster
-      .map(
-        (s) =>
-          `<tr><td>${String(s.number).padStart(2, '0')}</td><td>${s.name}</td><td>${s.examId}</td></tr>`,
-      )
-      .join('')}
-  </tbody>
-</table>`
-
-  const cardsHtml = order
-    .map((id, idx) => {
-      const card = cardsById.get(id)!
-      const badge = card.faceDown
-        ? '?'
-        : String(card.handwrittenNumber).padStart(2, '0')
-      return `
-<li class="sort-item ${card.faceDown ? 'is-down' : ''}" draggable="true" data-index="${idx}" data-card-id="${id}">
-  <div class="sort-handle" title="드래그하여 순서 변경">
-    <span class="slot">${idx + 1}</span>
-    <span class="num-badge" title="수기 번호">${badge}</span>
-  </div>
-  <div class="sort-card-wrap">
-    ${renderCardShell(card, { compact: true, showRosterHint: false })}
-  </div>
-  <div class="sort-tools">
-    <button type="button" class="btn tiny" data-act="up" data-index="${idx}" ${idx === 0 ? 'disabled' : ''}>↑</button>
-    <button type="button" class="btn tiny" data-act="down" data-index="${idx}" ${idx === order.length - 1 ? 'disabled' : ''}>↓</button>
-    <button type="button" class="btn tiny accent" data-act="flip" data-index="${idx}">뒤집기</button>
-  </div>
-</li>`
-    })
-    .join('')
-
+function renderHeadcount() {
+  const d = data!
+  const truth = headcountTruth(d.roster)
+  const top = `<div class="progress"><span class="pill">인원 확인</span><span class="timer" id="timer">${fmtTime(elapsed())}</span></div>`
   shell(
     `
-<section class="panel sorting-panel" data-stage="sorting">
-  <div class="sorting-layout">
-    <aside class="roster-pane">
-      ${rosterHtml}
-      <p class="side-note">명렬표 번호 순서(01→…)로 OMR을 맞춰 주세요. 뒤집힌 장은 모두 앞면으로.</p>
-    </aside>
-    <div class="cards-pane">
-      <div class="pane-head">
-        <h2>OMR 더미 <small>${order.length}장</small></h2>
-        <p>왼쪽 뱃지 수기번호 = 명렬 번호로 맞추세요 · 드래그/↑↓ · 카드 클릭=뒤집기</p>
-      </div>
-      <ul class="sort-list" id="sort-list">${cardsHtml}</ul>
-    </div>
-  </div>
-  <div class="actions sticky-actions">
-    <button class="btn ghost" id="btn-title" type="button">처음으로</button>
-    <button class="btn ghost" id="btn-autosort" type="button" title="연습용: 수기 번호 오름차순">수기번호순 맞추기</button>
-    <button class="btn primary" id="btn-to-inspect" type="button">정렬 완료 · 검사하기</button>
+<section class="panel headcount-panel" data-stage="headcount">
+  <h1>응시 인원 확인</h1>
+  <p class="lead">명렬표를 보고 <b>응시자 + 결시자 = 재적</b>인지 확인하세요. 결시생 카드는 더미에 없습니다.</p>
+  <div class="hc-layout">
+    ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
+    <form id="hc-form" class="hc-form">
+      <label>재적 <input name="enrolled" type="number" min="0" required /></label>
+      <label>응시자 <input name="present" type="number" min="0" required /></label>
+      <label>결시자 <input name="absent" type="number" min="0" required /></label>
+      <p class="side-note">힌트: 명렬 «결시» 행을 세요. (정답은 제출 후)</p>
+      <button class="btn primary" type="submit">확인 · 정렬로</button>
+    </form>
   </div>
   <div class="toast" id="toast" hidden></div>
 </section>`,
-    { stageClass: 'stage-sorting', top },
+    { top, desk: true, stageClass: 'stage-headcount' },
   )
-
-  bindSorting()
-  startTimerTick()
+  startClock()
+  app.querySelector('#hc-form')!.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const fd = new FormData(e.target as HTMLFormElement)
+    const enrolled = Number(fd.get('enrolled'))
+    const present = Number(fd.get('present'))
+    const absent = Number(fd.get('absent'))
+    const sumOk = present + absent === enrolled
+    const match =
+      enrolled === truth.enrolled && present === truth.present && absent === truth.absent && sumOk
+    headcountOk = match
+    if (!match) {
+      showToast(
+        sumOk
+          ? `숫자가 명렬과 다릅니다. (정답 재적 ${truth.enrolled} · 응시 ${truth.present} · 결시 ${truth.absent})`
+          : '응시자 + 결시자 = 재적이 되지 않습니다.',
+      )
+      // still allow proceed after seeing feedback? Field realism: must get right. Allow retry only.
+      return
+    }
+    go('sorting')
+  })
 }
 
 function showToast(msg: string) {
@@ -265,251 +301,348 @@ function showToast(msg: string) {
   t.textContent = msg
   window.setTimeout(() => {
     t.hidden = true
-  }, 2600)
+  }, 3200)
 }
 
-function startTimerTick() {
-  const el = app.querySelector('#timer')
-  if (!el) return
-  const id = window.setInterval(() => {
-    if (stage !== 'sorting' && stage !== 'inspection') {
-      clearInterval(id)
-      return
-    }
-    const timer = app.querySelector('#timer')
-    if (timer) timer.textContent = fmtTime(elapsed())
-  }, 1000)
+function renderSorting() {
+  const d = data!
+  const bad = [...pile, ...tray].filter((id) => {
+    const c = cardsById.get(id)!
+    return c.faceDown || c.upsideDown
+  }).length
+  const top = `<div class="progress"><span class="pill">정렬</span><span class="timer" id="timer">${fmtTime(elapsed())}</span><span class="hint-pill">방향 이상 ${bad}장 · 트레이 ${tray.length}/${d.cards.length}</span></div>`
+
+  const pileHtml = pile
+    .map((id, i) => {
+      const card = cardsById.get(id)!
+      const rot = -18 + ((i * 37) % 36)
+      const x = (i % 5) * 18 - 30
+      const y = Math.floor(i / 5) * 14 + (i % 3) * 6
+      return `
+<div class="desk-card pile-card ${selectedPileId === id ? 'selected' : ''}" data-id="${id}" draggable="true"
+  style="--r:${rot}deg; --x:${x}px; --y:${y}px; z-index:${i + 1}">
+  ${renderCardShell(card, { compact: true })}
+</div>`
+    })
+    .join('')
+
+  const trayHtml = tray
+    .map((id, i) => {
+      const card = cardsById.get(id)!
+      return `
+<div class="desk-card tray-card" data-id="${id}" data-tray-index="${i}" draggable="true">
+  <span class="tray-idx">${i + 1}</span>
+  ${renderCardShell(card, { compact: true })}
+  <div class="tray-tools">
+    <button type="button" class="btn tiny" data-act="left" data-i="${i}" ${i === 0 ? 'disabled' : ''}>←</button>
+    <button type="button" class="btn tiny" data-act="right" data-i="${i}" ${i === tray.length - 1 ? 'disabled' : ''}>→</button>
+    <button type="button" class="btn tiny accent" data-act="flip" data-i="${i}">뒷면</button>
+    <button type="button" class="btn tiny accent" data-act="spin" data-i="${i}">위아래</button>
+    <button type="button" class="btn tiny" data-act="to-pile" data-i="${i}">더미로</button>
+  </div>
+</div>`
+    })
+    .join('')
+
+  shell(
+    `
+<section class="sorting-desk" data-stage="sorting">
+  <aside class="desk-roster">
+    ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
+    <p class="side-note light">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
+  </aside>
+  <div class="desk-surface">
+    <div class="pile-zone" id="pile-zone">
+      <h2>흐트러진 더미 <small>${pile.length}</small></h2>
+      <div class="pile-area" id="pile-area">${pileHtml || '<p class="empty">더미가 비었습니다</p>'}</div>
+      <div class="pile-actions">
+        <button type="button" class="btn tiny" id="btn-flip-sel" ${selectedPileId ? '' : 'disabled'}>선택 뒷면 뒤집기</button>
+        <button type="button" class="btn tiny" id="btn-spin-sel" ${selectedPileId ? '' : 'disabled'}>선택 위아래</button>
+        <button type="button" class="btn tiny primary" id="btn-to-tray" ${selectedPileId ? '' : 'disabled'}>트레이로 →</button>
+      </div>
+    </div>
+    <div class="tray-zone" id="tray-zone">
+      <h2>정렬 트레이 <small>번호 오름차순</small></h2>
+      <div class="tray-rail" id="tray-rail">${trayHtml || '<p class="empty">카드를 더미에서 끌어오세요</p>'}</div>
+    </div>
+  </div>
+  <div class="actions sticky-actions">
+    <button class="btn ghost" id="btn-autosort" type="button">수기번호순(연습)</button>
+    <button class="btn primary" id="btn-done-sort" type="button">정렬 완료 · 검사</button>
+  </div>
+  <div class="toast" id="toast" hidden></div>
+</section>`,
+    { top, desk: true, stageClass: 'stage-sorting' },
+  )
+  startClock()
+  bindSorting()
 }
 
 function bindSorting() {
-  app.querySelector('#btn-title')?.addEventListener('click', () => {
-    if (confirm('진행 중인데 처음 화면으로 갈까요?')) boot(data.config.seed)
+  app.querySelector('#btn-autosort')?.addEventListener('click', () => {
+    const all = [...pile, ...tray]
+    for (const id of all) {
+      const c = cardsById.get(id)!
+      c.faceDown = false
+      c.upsideDown = false
+    }
+    tray = all.sort(
+      (a, b) => cardsById.get(a)!.handwrittenNumber - cardsById.get(b)!.handwrittenNumber,
+    )
+    pile = []
+    selectedPileId = null
+    renderSorting()
   })
 
-  app.querySelector('#btn-to-inspect')?.addEventListener('click', () => {
-    const still = order.filter((id) => cardsById.get(id)?.faceDown)
-    if (still.length) {
-      showToast(`아직 뒤집힌 카드가 ${still.length}장 있어요. 모두 앞면으로 만들어 주세요.`)
+  app.querySelector('#btn-done-sort')?.addEventListener('click', () => {
+    if (pile.length) {
+      showToast('더미에 카드가 남아 있습니다.')
       return
     }
-    const exp = expectedOrder(data.roster, [...cardsById.values()])
-    sortResult = scoreSort(order, exp, cardsById)
+    const bad = tray.filter((id) => {
+      const c = cardsById.get(id)!
+      return c.faceDown || c.upsideDown
+    })
+    if (bad.length) {
+      showToast(`방향이 잘못된 카드가 ${bad.length}장 있습니다.`)
+      return
+    }
+    const exp = expectedOrder(data!.roster, [...cardsById.values()])
+    sortResult = scoreSort(tray, exp, cardsById)
     if (!sortResult.orderCorrect) {
-      const ok = confirm(
-        '명렬표 순서와 아직 다릅니다.\n그래도 검사 단계로 넘어갈까요?\n(정렬 점수는 결과가 반영됩니다)',
-      )
-      if (!ok) return
+      if (!confirm('번호 순서가 명렬과 다릅니다. 그래도 검사로 갈까요?')) return
     }
     inspectIndex = 0
     go('inspection')
   })
 
-  app.querySelector('#btn-autosort')?.addEventListener('click', () => {
-    // practice assist: sort by handwritten number (still need flips)
-    const still = order.filter((id) => cardsById.get(id)?.faceDown)
-    if (still.length) {
-      showToast('먼저 뒤집힌 카드를 모두 앞면으로 만들어 주세요.')
-      return
-    }
-    order = [...order].sort((a, b) => {
-      const ca = cardsById.get(a)!
-      const cb = cardsById.get(b)!
-      return ca.handwrittenNumber - cb.handwrittenNumber
+  const selectPile = (id: string) => {
+    selectedPileId = id
+    renderSorting()
+  }
+
+  app.querySelectorAll<HTMLElement>('.pile-card').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.stopPropagation()
+      selectPile(el.dataset.id!)
     })
-    showToast('수기 번호 순으로 맞춰 두었어요. 한 번 더 확인하세요.')
+    el.addEventListener('dblclick', () => moveToTray(el.dataset.id!))
+    el.addEventListener('dragstart', (e: DragEvent) => {
+      e.dataTransfer?.setData('text/plain', el.dataset.id!)
+      selectedPileId = el.dataset.id!
+    })
+  })
+
+  app.querySelector('#tray-zone')?.addEventListener('dragover', (e) => e.preventDefault())
+  app.querySelector('#tray-zone')?.addEventListener('drop', (e) => {
+    e.preventDefault()
+    const de = e as DragEvent
+    const id = de.dataTransfer?.getData('text/plain')
+    if (id) moveToTray(id)
+  })
+
+  app.querySelector('#btn-to-tray')?.addEventListener('click', () => {
+    if (selectedPileId) moveToTray(selectedPileId)
+  })
+  app.querySelector('#btn-flip-sel')?.addEventListener('click', () => {
+    if (!selectedPileId) return
+    const c = cardsById.get(selectedPileId)!
+    c.faceDown = !c.faceDown
+    renderSorting()
+  })
+  app.querySelector('#btn-spin-sel')?.addEventListener('click', () => {
+    if (!selectedPileId) return
+    const c = cardsById.get(selectedPileId)!
+    c.upsideDown = !c.upsideDown
     renderSorting()
   })
 
-  app.querySelectorAll<HTMLButtonElement>('[data-act]').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation()
+  app.querySelectorAll<HTMLButtonElement>('.tray-tools [data-act]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const i = Number(btn.dataset.i)
       const act = btn.dataset.act
-      const idx = Number(btn.dataset.index)
-      if (act === 'up') moveItem(idx, idx - 1)
-      if (act === 'down') moveItem(idx, idx + 1)
-      if (act === 'flip') flipAt(idx)
+      const id = tray[i]
+      if (!id) return
+      const c = cardsById.get(id)!
+      if (act === 'flip') c.faceDown = !c.faceDown
+      if (act === 'spin') c.upsideDown = !c.upsideDown
+      if (act === 'to-pile') {
+        tray = tray.filter((x) => x !== id)
+        pile.push(id)
+      }
+      if (act === 'left' && i > 0) {
+        ;[tray[i - 1], tray[i]] = [tray[i]!, tray[i - 1]!]
+      }
+      if (act === 'right' && i < tray.length - 1) {
+        ;[tray[i + 1], tray[i]] = [tray[i]!, tray[i + 1]!]
+      }
+      renderSorting()
     })
   })
 
-  app.querySelectorAll<HTMLElement>('.card-3d').forEach((el) => {
+  // tap card body in tray to flip back / spin with modifiers? single click flip back
+  app.querySelectorAll<HTMLElement>('.tray-card .card-3d').forEach((el) => {
     el.addEventListener('click', () => {
       const id = el.dataset.cardId!
-      const idx = order.indexOf(id)
-      if (idx >= 0) flipAt(idx)
-    })
-  })
-
-  const list = app.querySelector('#sort-list')!
-  list.querySelectorAll<HTMLElement>('.sort-item').forEach((item) => {
-    item.addEventListener('dragstart', (e) => {
-      dragFrom = Number(item.dataset.index)
-      item.classList.add('dragging')
-      e.dataTransfer?.setData('text/plain', String(dragFrom))
-      if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'
-    })
-    item.addEventListener('dragend', () => {
-      item.classList.remove('dragging')
-      dragFrom = null
-    })
-    item.addEventListener('dragover', (e) => {
-      e.preventDefault()
-      item.classList.add('drag-over')
-    })
-    item.addEventListener('dragleave', () => item.classList.remove('drag-over'))
-    item.addEventListener('drop', (e) => {
-      e.preventDefault()
-      item.classList.remove('drag-over')
-      const to = Number(item.dataset.index)
-      const from = dragFrom ?? Number(e.dataTransfer?.getData('text/plain'))
-      if (Number.isFinite(from) && Number.isFinite(to)) moveItem(from, to)
+      const c = cardsById.get(id)!
+      if (c.faceDown) c.faceDown = false
+      else if (c.upsideDown) c.upsideDown = false
+      else c.faceDown = true
+      renderSorting()
     })
   })
 }
 
-function moveItem(from: number, to: number) {
-  if (to < 0 || to >= order.length || from === to) return
-  const next = [...order]
-  const [item] = next.splice(from, 1)
-  next.splice(to, 0, item!)
-  order = next
-  renderSorting()
-}
-
-function flipAt(idx: number) {
-  const id = order[idx]
-  if (!id) return
-  const card = cardsById.get(id)
-  if (!card) return
-  card.faceDown = !card.faceDown
+function moveToTray(id: string) {
+  if (!pile.includes(id)) return
+  pile = pile.filter((x) => x !== id)
+  tray.push(id)
+  selectedPileId = null
   renderSorting()
 }
 
 function renderInspection() {
-  // inspection uses roster order of cards after player's sort
+  const d = data!
+  const order = tray.length ? tray : expectedOrder(d.roster, d.cards)
   const card = cardsById.get(order[inspectIndex]!)!
-  const student = studentForCard(data.roster, card)
-  const selected = new Set(judgments.get(card.id) ?? [])
+  const student = studentForCard(d.roster, card)
+  const j = judgments.get(card.id) ?? { selected: [], disposition: 'ok' as Disposition }
+  const selected = new Set(j.selected)
 
-  const top = `
-<div class="progress">
-  <span class="pill">2 / 2 · 검사</span>
-  <span class="timer" id="timer">${fmtTime(elapsed())}</span>
-  <span class="hint-pill">${inspectIndex + 1} / ${order.length}장</span>
-</div>`
+  const top = `<div class="progress"><span class="pill">검사</span><span class="timer" id="timer">${fmtTime(elapsed())}</span><span class="hint-pill">${inspectIndex + 1}/${order.length}</span></div>`
 
   const checks = JUDGABLE_ERRORS.map((e) => {
     const on = selected.has(e)
-    return `
-<label class="check ${on ? 'on' : ''} ${e === 'ok' ? 'ok' : ''}">
-  <input type="checkbox" value="${e}" ${on ? 'checked' : ''} />
-  <span class="check-body">
-    <strong>${ERROR_LABELS[e]}</strong>
-    <small>${ERROR_HINTS[e]}</small>
-  </span>
-</label>`
+    return `<label class="check ${on ? 'on' : ''} ${e === 'ok' ? 'ok' : ''}">
+      <input type="checkbox" value="${e}" ${on ? 'checked' : ''}/>
+      <span class="check-body"><strong>${ERROR_LABELS[e]}</strong><small>${ERROR_HINTS[e]}</small></span>
+    </label>`
   }).join('')
+
+  const dispositions = (['ok', 'ask_student', 'to_subject'] as Disposition[])
+    .map(
+      (disp) => `
+<label class="disp ${j.disposition === disp ? 'on' : ''}">
+  <input type="radio" name="disp" value="${disp}" ${j.disposition === disp ? 'checked' : ''}/>
+  <span><strong>${DISPOSITION_LABELS[disp]}</strong><small>${DISPOSITION_HINTS[disp]}</small></span>
+</label>`,
+    )
+    .join('')
 
   shell(
     `
 <section class="panel inspection-panel" data-stage="inspection">
   <div class="inspect-layout">
     <aside class="inspect-roster">
-      <h2>이 학생</h2>
+      <h2>명렬 한 줄</h2>
       <dl class="student-card">
         <div><dt>번호</dt><dd>${String(student.number).padStart(2, '0')}</dd></div>
         <div><dt>성명</dt><dd>${student.name}</dd></div>
-        <div><dt>학년·반</dt><dd>${student.grade}학년 ${student.classNo}반</dd></div>
+        <div><dt>학년·반·번호</dt><dd>${student.grade}-${student.classNo}-${String(student.number).padStart(2,'0')}</dd></div>
         <div><dt>수험번호</dt><dd>${student.examId}</dd></div>
       </dl>
-      <p class="side-note">수기란·마킹란·답안을 명렬과 비교하세요. 해당되는 오류를 모두 고르고, 없으면 «정상»만 고르세요.</p>
+      <p class="warn-note">⚠ 교사가 마킹을 대신 고치지 않습니다.</p>
       <div class="dot-nav" id="dot-nav">
         ${order
           .map((id, i) => {
-            const judged = judgments.has(id)
-            return `<button type="button" class="dot ${i === inspectIndex ? 'current' : ''} ${judged ? 'done' : ''}" data-i="${i}" aria-label="${i + 1}번 카드"></button>`
+            const done = judgments.has(id)
+            return `<button type="button" class="dot ${i === inspectIndex ? 'current' : ''} ${done ? 'done' : ''}" data-i="${i}"></button>`
           })
           .join('')}
       </div>
     </aside>
     <div class="inspect-card-pane">
-      ${renderOmrFront(card, { student, showRosterHint: true, compact: false })}
+      <div class="zoom-toolbar">
+        <button type="button" class="btn tiny" id="z-out">−</button>
+        <button type="button" class="btn tiny" id="z-reset">돋보기 리셋</button>
+        <button type="button" class="btn tiny" id="z-in">+</button>
+      </div>
+      <div class="zoom-viewport" id="zoom-viewport">
+        <div class="zoom-canvas" id="zoom-canvas" style="transform:translate(${panX}px,${panY}px) scale(${zoom})">
+          ${renderOmrFront(card, { student, showRosterHint: true })}
+        </div>
+      </div>
     </div>
     <aside class="inspect-judge">
-      <h2>판정</h2>
+      <h2>발견한 이상</h2>
       <form id="judge-form" class="judge-form">${checks}</form>
+      <h2>조치</h2>
+      <form id="disp-form" class="disp-form">${dispositions}</form>
     </aside>
   </div>
   <div class="actions sticky-actions">
-    <button class="btn ghost" id="btn-prev" type="button" ${inspectIndex === 0 ? 'disabled' : ''}>← 이전</button>
-    <button class="btn ghost" id="btn-next" type="button">${inspectIndex < order.length - 1 ? '다음 →' : '건너뛰기'}</button>
-    <button class="btn primary" id="btn-submit" type="button">${inspectIndex < order.length - 1 ? '저장 후 다음' : '검사 제출 · 결과'}</button>
+    <button class="btn ghost" id="btn-prev" type="button" ${inspectIndex === 0 ? 'disabled' : ''}>←</button>
+    <button class="btn primary" id="btn-submit" type="button">${inspectIndex < order.length - 1 ? '저장 후 다음' : '제출 · 결과'}</button>
   </div>
   <div class="toast" id="toast" hidden></div>
 </section>`,
-    { stageClass: 'stage-inspection', top },
+    { top, desk: true, stageClass: 'stage-inspection' },
   )
-
-  bindInspection(card)
-  startTimerTick()
+  startClock()
+  bindInspection(card, order)
 }
 
-function bindInspection(card: OmrCard) {
-  const form = app.querySelector<HTMLFormElement>('#judge-form')!
+function bindInspection(card: OmrCard, order: string[]) {
+  const saveSel = (sel: ErrorType[], disp: Disposition) => {
+    judgments.set(card.id, { selected: sel, disposition: disp })
+  }
 
-  form.querySelectorAll<HTMLInputElement>('input[type=checkbox]').forEach((inp) => {
+  app.querySelectorAll<HTMLInputElement>('#judge-form input').forEach((inp) => {
     inp.addEventListener('change', () => {
+      const cur = judgments.get(card.id) ?? { selected: [] as ErrorType[], disposition: 'ok' as Disposition }
+      let set = new Set(cur.selected)
       const val = inp.value as ErrorType
-      let cur = new Set(judgments.get(card.id) ?? [])
       if (inp.checked) {
-        if (val === 'ok') cur = new Set(['ok'])
+        if (val === 'ok') set = new Set(['ok'])
         else {
-          cur.delete('ok')
-          cur.add(val)
+          set.delete('ok')
+          set.add(val)
         }
-      } else {
-        cur.delete(val)
-      }
-      judgments.set(card.id, [...cur])
-      // refresh check styles without full rerender to keep focus — full rerender ok for demo
+      } else set.delete(val)
+      saveSel([...set], cur.disposition)
+      renderInspection()
+    })
+  })
+
+  app.querySelectorAll<HTMLInputElement>('#disp-form input').forEach((inp) => {
+    inp.addEventListener('change', () => {
+      const cur = judgments.get(card.id) ?? { selected: [] as ErrorType[], disposition: 'ok' as Disposition }
+      saveSel(cur.selected, inp.value as Disposition)
       renderInspection()
     })
   })
 
   app.querySelector('#btn-prev')?.addEventListener('click', () => {
     inspectIndex = Math.max(0, inspectIndex - 1)
+    zoom = 1
+    panX = 0
+    panY = 0
     renderInspection()
   })
 
-  const saveCurrent = (): boolean => {
-    const sel = judgments.get(card.id) ?? []
-    if (sel.length === 0) {
-      showToast('판정을 하나 이상 골라 주세요. 문제없으면 «정상»을 선택하세요.')
-      return false
-    }
-    return true
-  }
-
-  app.querySelector('#btn-next')?.addEventListener('click', () => {
-    if (inspectIndex < order.length - 1) {
-      inspectIndex++
-      renderInspection()
-    }
-  })
-
   app.querySelector('#btn-submit')?.addEventListener('click', () => {
-    if (!saveCurrent()) return
+    const cur = judgments.get(card.id)
+    if (!cur || cur.selected.length === 0) {
+      showToast('발견한 이상을 고르세요. 없으면 «이상 없음».')
+      return
+    }
+    // auto-suggest disposition: if ok -> ok, else to_subject (post-exam)
+    if (cur.selected.includes('ok') && cur.selected.length === 1) {
+      /* keep */
+    }
     if (inspectIndex < order.length - 1) {
       inspectIndex++
+      zoom = 1
+      panX = 0
+      panY = 0
       renderInspection()
       return
     }
-    // ensure all judged
     for (let i = 0; i < order.length; i++) {
-      const id = order[i]!
-      if (!judgments.has(id) || (judgments.get(id)?.length ?? 0) === 0) {
+      if (!judgments.has(order[i]!)) {
         inspectIndex = i
         renderInspection()
-        showToast(`${i + 1}번 카드 판정이 비어 있어요.`)
+        showToast(`${i + 1}번 카드 판정이 비어 있습니다.`)
         return
       }
     }
@@ -519,124 +652,133 @@ function bindInspection(card: OmrCard) {
   app.querySelectorAll<HTMLButtonElement>('#dot-nav .dot').forEach((d) => {
     d.addEventListener('click', () => {
       inspectIndex = Number(d.dataset.i)
+      zoom = 1
+      panX = 0
+      panY = 0
       renderInspection()
     })
+  })
+
+  app.querySelector('#z-in')?.addEventListener('click', () => {
+    zoom = Math.min(2.5, zoom + 0.25)
+    renderInspection()
+  })
+  app.querySelector('#z-out')?.addEventListener('click', () => {
+    zoom = Math.max(0.75, zoom - 0.25)
+    renderInspection()
+  })
+  app.querySelector('#z-reset')?.addEventListener('click', () => {
+    zoom = 1
+    panX = 0
+    panY = 0
+    renderInspection()
+  })
+
+  const vp = app.querySelector<HTMLElement>('#zoom-viewport')
+  let dragging = false
+  let lx = 0
+  let ly = 0
+  vp?.addEventListener('pointerdown', (e) => {
+    dragging = true
+    lx = e.clientX
+    ly = e.clientY
+    vp.setPointerCapture(e.pointerId)
+  })
+  vp?.addEventListener('pointermove', (e) => {
+    if (!dragging) return
+    panX += e.clientX - lx
+    panY += e.clientY - ly
+    lx = e.clientX
+    ly = e.clientY
+    const canvas = app.querySelector<HTMLElement>('#zoom-canvas')
+    if (canvas) canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`
+  })
+  vp?.addEventListener('pointerup', () => {
+    dragging = false
   })
 }
 
 function finishGame() {
-  const exp = expectedOrder(data.roster, [...cardsById.values()])
-  if (!sortResult) {
-    sortResult = scoreSort(order, exp, cardsById)
-  }
-  // score inspection in roster order of player's sorted cards
-  const orderedCards = order.map((id) => cardsById.get(id)!)
-  const jList: InspectionJudgment[] = order.map((id) => ({
-    cardId: id,
-    selected: judgments.get(id) ?? [],
-  }))
-  const insp = scoreInspection(orderedCards, jList)
-  finalScore = computeScore(sortResult, insp, elapsed(), order.length)
+  clearTimer()
+  const d = data!
+  const order = tray.length ? tray : expectedOrder(d.roster, d.cards)
+  const exp = expectedOrder(d.roster, [...cardsById.values()])
+  if (!sortResult) sortResult = scoreSort(order, exp, cardsById)
+  const ordered = order.map((id) => cardsById.get(id)!)
+  const jList: InspectionJudgment[] = order.map((id) => {
+    const j = judgments.get(id) ?? { selected: ['ok'] as ErrorType[], disposition: 'ok' as Disposition }
+    return { cardId: id, selected: j.selected, disposition: j.disposition }
+  })
+  const insp = scoreInspection(ordered, jList)
+  finalScore = computeScore({
+    headcountOk,
+    sort: sortResult,
+    inspection: insp,
+    timeSeconds: elapsed(),
+    cardCount: order.length,
+    timedOut,
+  })
+  saveBest(d.config.difficulty, finalScore.total)
   go('results')
 }
 
 function renderResults() {
   const s = finalScore!
-  const sort = sortResult!
+  const d = data!
+  const ratio = s.maxTotal ? s.total / s.maxTotal : 0
+  const grade = ratio >= 0.95 ? 'A+' : ratio >= 0.85 ? 'A' : ratio >= 0.7 ? 'B' : ratio >= 0.55 ? 'C' : 'D'
 
-  const cardRows = s.inspection
+  const rows = s.inspection
     .map((cs) => {
       const card = cardsById.get(cs.cardId)!
-      const st = studentForCard(data.roster, card)
-      const status = cs.perfect
-        ? '<span class="tag good">정확</span>'
-        : '<span class="tag bad">미흡</span>'
-      const miss =
-        cs.missed.length > 0
-          ? `<div class="explain miss">놓침: ${cs.missed.map((e) => ERROR_LABELS[e]).join(', ')} — ${cs.missed.map((e) => ERROR_HINTS[e]).join(' ')}</div>`
-          : ''
-      const fp =
-        cs.falsePositive.length > 0
-          ? `<div class="explain fp">잘못 선택: ${cs.falsePositive.map((e) => ERROR_LABELS[e]).join(', ')}</div>`
-          : ''
-      const hit =
-        cs.hit.length > 0
-          ? `<div class="explain hit">맞춤: ${cs.hit.map((e) => ERROR_LABELS[e]).join(', ')}</div>`
-          : ''
+      const st = studentForCard(d.roster, card)
+      const hl = [...cs.missed, ...cs.hit.filter((e) => e !== 'ok')]
       return `
 <article class="result-card ${cs.perfect ? 'ok' : 'ng'}">
-  <header><b>${String(st.number).padStart(2, '0')} ${st.name}</b> ${status}</header>
-  ${hit}${miss}${fp}
+  <header><b>${String(st.number).padStart(2, '0')} ${st.name}</b>
+    <span class="tag ${cs.perfect ? 'good' : 'bad'}">${cs.perfect ? '정확' : '미흡'}</span>
+  </header>
+  <div class="result-mini">${renderOmrFront(card, { student: st, highlight: hl, compact: false })}</div>
+  <div class="explain hit">맞춤: ${cs.hit.map((e) => ERROR_LABELS[e]).join(', ') || '—'}</div>
+  ${cs.missed.length ? `<div class="explain miss">놓침: ${cs.missed.map((e) => `${ERROR_LABELS[e]} — ${ERROR_HINTS[e]}`).join(' / ')}</div>` : ''}
+  ${cs.falsePositive.length ? `<div class="explain fp">잘못 선택: ${cs.falsePositive.map((e) => ERROR_LABELS[e]).join(', ')}</div>` : ''}
+  <div class="explain ${cs.dispositionOk ? 'hit' : 'miss'}">조치: ${DISPOSITION_LABELS[cs.disposition]}
+    ${cs.dispositionOk ? '' : `(정답: ${DISPOSITION_LABELS[cs.expectedDisposition]})`}</div>
 </article>`
     })
     .join('')
-
-  const ratio = s.maxTotal ? s.total / s.maxTotal : 0
-  const grade =
-    ratio >= 0.95 ? 'A+' : ratio >= 0.85 ? 'A' : ratio >= 0.7 ? 'B' : ratio >= 0.55 ? 'C' : 'D'
-  const gradeMsg =
-    ratio >= 0.85
-      ? '채점관 선생님도 고개를 끄덕일 만해요.'
-      : ratio >= 0.7
-        ? '괜찮아요. 놓친 장만 다시 보면 더 빨라질 거예요.'
-        : '잡무는 습관입니다. 같은 시드로 한 번 더 손을 풀어 보세요.'
 
   shell(
     `
 <section class="panel results-panel" data-stage="results">
   <div class="score-hero">
-    <p class="eyebrow">결과 · 등급 ${grade}</p>
-    <h1><span class="score-num">${s.total}</span> <small>/ ${s.maxTotal}점</small></h1>
-    <p class="lead">소요 ${fmtTime(s.timeSeconds)} · 시간 보너스 +${s.timeBonus}</p>
-    <p class="grade-msg">${gradeMsg}</p>
-    <p class="side-note" style="text-align:center">시드 ${data.config.seed} · ?seed= 로 같은 문제 공유</p>
+    <p class="eyebrow">결과 · ${DIFFICULTIES[d.config.difficulty].label} · ${grade}${s.timedOut ? ' · 시간초과' : ''}</p>
+    <h1><span class="score-num">${s.total}</span> <small>/ ${s.maxTotal}</small></h1>
+    <p class="lead">소요 ${fmtTime(s.timeSeconds)} · 보너스 +${s.timeBonus} · 시드 ${d.config.seed}</p>
   </div>
   <div class="result-grid">
-    <div class="result-box">
-      <h2>정렬</h2>
-      <ul>
-        <li>${sort.orderCorrect ? '✅' : '❌'} 명렬 순서 ${sort.orderCorrect ? '정확' : '틀림'} <small>(+${sort.orderCorrect ? 30 : 0}/30)</small></li>
-        <li>${sort.flipsCorrect ? '✅' : '❌'} 뒤집기 ${sort.flipsCorrect ? '모두 앞면' : '미완'} <small>(+${sort.flipsCorrect ? 20 : 0}/20)</small></li>
-      </ul>
-      ${
-        !sort.orderCorrect
-          ? `<p class="side-note">정답 순서: ${sort.expectedOrder
-              .map((id) => {
-                const c = cardsById.get(id)!
-                return String(studentForCard(data.roster, c).number).padStart(2, '0')
-              })
-              .join(' → ')}</p>`
-          : ''
-      }
+    <div class="result-box"><h2>인원</h2><p>${s.headcountOk ? '✅' : '❌'} +${s.headcountPoints}/20</p></div>
+    <div class="result-box"><h2>정렬</h2>
+      <p>${s.sortOrderOk ? '✅' : '❌'} 순서 · ${s.sortOrientationOk ? '✅' : '❌'} 방향 · +${s.sortPoints}/50</p>
     </div>
-    <div class="result-box">
-      <h2>검사</h2>
-      <p>카드 점수 <b>${s.inspectionPoints}</b> · 완벽 ${s.inspection.filter((c) => c.perfect).length}/${s.inspection.length}장</p>
+    <div class="result-box"><h2>검사</h2>
+      <p>+${s.inspectionPoints} · 완벽 ${s.inspection.filter((c) => c.perfect).length}/${s.inspection.length}</p>
     </div>
   </div>
-  <div class="result-list">
-    <h2>카드별 해설</h2>
-    ${cardRows}
-  </div>
+  <div class="result-list"><h2>카드별 해설</h2>${rows}</div>
   <div class="actions">
-    <button class="btn primary" id="btn-retry" type="button">같은 시드로 다시</button>
+    <button class="btn primary" id="btn-retry" type="button">같은 시드</button>
     <button class="btn ghost" id="btn-new" type="button">새 시드</button>
-    <button class="btn ghost" id="btn-home" type="button">처음 화면</button>
+    <button class="btn ghost" id="btn-hub2" type="button">허브</button>
   </div>
 </section>`,
-    { stageClass: 'stage-results' },
   )
-
-  app.querySelector('#btn-retry')!.addEventListener('click', () => boot(data.config.seed))
-  app.querySelector('#btn-new')!.addEventListener('click', () => {
-    const next = Math.floor(Math.random() * 1e9) || 1
-    history.replaceState(null, '', `?seed=${next}`)
-    boot(next)
-  })
-  app.querySelector('#btn-home')!.addEventListener('click', () => {
-    stage = 'title'
-    render()
-  })
+  app.querySelector('#btn-retry')!.addEventListener('click', () => startRun(d.config.difficulty, d.config.seed))
+  app.querySelector('#btn-new')!.addEventListener('click', () => startRun(d.config.difficulty))
+  app.querySelector('#btn-hub2')!.addEventListener('click', bootHub)
 }
 
-boot()
+bootHub()
+
+// silence unused in tree-shaking edge
+void expectedDisposition

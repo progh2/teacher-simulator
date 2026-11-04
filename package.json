@@ -14,5 +14,9 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
   },
-  "description": "교사 잡무 연습 미니게임 모음"
+  "description": "교사 잡무 연습 미니게임 모음",
+  "dependencies": {
+    "@types/three": "^0.187.0",
+    "three": "^0.187.0"
+  }
 }
