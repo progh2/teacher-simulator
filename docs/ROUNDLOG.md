@@ -25,3 +25,6 @@
 
 ## Round 0032 (01:37 KST)
 - viewport-check asserts cardsOut/slotsOut
+
+## Round 0033 (01:38 KST)
+- Inspection: larger labels, sticky submit, bigger magnifier
