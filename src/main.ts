@@ -1000,7 +1000,8 @@ function renderResults() {
     `
 <section class="panel results-panel" data-stage="results">
   <div class="score-hero">
-    <p class="eyebrow">결과 · ${DIFFICULTIES[d.config.difficulty].label} · ${grade}${s.timedOut ? ' · 시간초과' : ''}</p>
+    <p class="eyebrow">결과 · ${DIFFICULTIES[d.config.difficulty].label}${s.timedOut ? ' · 시간초과' : ''}</p>
+    <div class="grade-badge" data-grade="${grade}">${grade}</div>
     <h1><span class="score-num">${s.total}</span> <small>/ ${s.maxTotal}</small></h1>
     <div class="score-bar" aria-hidden="true"><i style="width:${Math.round(ratio*100)}%"></i></div>
     <p class="lead">소요 ${fmtTime(s.timeSeconds)} · 보너스 +${s.timeBonus} · 시드 ${d.config.seed}</p>

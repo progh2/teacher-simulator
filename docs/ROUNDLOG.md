@@ -52,3 +52,6 @@
 
 ## Round 0041 (02:51 KST)
 - Hub progress chips + louder roster absent marks
+
+## Round 0042 (02:52 KST)
+- Results grade badge + colored meters
