@@ -980,3 +980,17 @@ kbd {
 }
 .sorting-desk { max-width: none; }
 .desk-table { max-width: none; }
+
+/* 0027 pile toolbar */
+.pile-zone .zone-head {
+  position: sticky; top: 0; z-index: 8;
+  background: rgba(28, 16, 10, 0.72);
+  backdrop-filter: blur(4px);
+}
+.roster-sheet td, .roster-sheet th { color: #000 !important; }
+.roster-sheet {
+  background: #fffef8 !important;
+  background-image: repeating-linear-gradient(180deg, transparent 0 27px, #e4d8c0 27px 28px) !important;
+}
+.tray-slot.empty-slot { min-height: 168px; }
+.tray-slot .slot-ghost { min-height: 140px; font-size: 15px; }

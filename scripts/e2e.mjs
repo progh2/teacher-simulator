@@ -200,6 +200,11 @@ async function playRun(page, base, diff, seed, shotPrefix) {
         el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: p.mx, clientY: p.my }))
       }, { mx, my })
       await page.waitForTimeout(300)
+      const magOk = await page.evaluate(() => {
+        const m = document.querySelector('#magnifier')
+        return !!m && !m.hidden && !!m.querySelector('.omr-card')
+      })
+      if (!magOk) throw new Error('magnifier hasOmr failed')
     }
     await page.screenshot({ path: join(shotDir, '09-inspection-zoom.png') })
     await page.click('#z-reset')
