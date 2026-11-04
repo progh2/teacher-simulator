@@ -34,3 +34,6 @@
 
 ## Round 0035 (01:53 KST)
 - Sticky kbd legend chips
+
+## Round 0036 (01:55 KST)
+- Fix pile card pointer hit-testing; harden e2e select

@@ -147,8 +147,8 @@ async function playRun(page, base, diff, seed, shotPrefix) {
         const cards = page.locator('.pile-card')
         const n = await cards.count()
         if (n < 1) break
-        await cards.nth(n - 1).click({ force: true })
-        await page.waitForTimeout(80)
+        await cards.nth(n - 1).dispatchEvent('click')
+        await page.waitForSelector('#btn-to-tray:not([disabled])', { timeout: 3000 })
         await page.click('#btn-to-tray')
         await page.waitForTimeout(120)
       }
@@ -167,7 +167,7 @@ async function playRun(page, base, diff, seed, shotPrefix) {
     const pileCards = page.locator('.pile-card')
     const n = await pileCards.count()
     if (n > 0) {
-      await pileCards.nth(n - 1).click({ force: true })
+      await pileCards.nth(n - 1).dispatchEvent('click')
       await page.waitForTimeout(150)
       if (await page.locator('#btn-flip-sel').isEnabled()) {
         await page.click('#btn-flip-sel')
