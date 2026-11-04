@@ -5,14 +5,20 @@
       "overflowX": false,
       "scrollW": 1280,
       "docW": 1280,
+      "docH": 800,
       "readable": true,
+      "cardsOut": 0,
+      "slotsOut": 0,
       "stage": "sorting"
     },
     "inspection": {
       "overflowX": false,
       "scrollW": 1280,
       "docW": 1280,
+      "docH": 800,
       "readable": true,
+      "cardsOut": 0,
+      "slotsOut": 0,
       "stage": "inspection"
     }
   },
@@ -22,14 +28,20 @@
       "overflowX": false,
       "scrollW": 1024,
       "docW": 1024,
+      "docH": 768,
       "readable": true,
+      "cardsOut": 0,
+      "slotsOut": 0,
       "stage": "sorting"
     },
     "inspection": {
       "overflowX": false,
       "scrollW": 1024,
       "docW": 1024,
+      "docH": 768,
       "readable": true,
+      "cardsOut": 0,
+      "slotsOut": 0,
       "stage": "inspection"
     }
   }

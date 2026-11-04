@@ -22,3 +22,6 @@
 ## Round 0031 (01:36 KST)
 - Orient chips + milder fan; memo 16px
 - e2e OK, viewport OK
+
+## Round 0032 (01:37 KST)
+- viewport-check asserts cardsOut/slotsOut

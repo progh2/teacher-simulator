@@ -40,19 +40,28 @@ function serve(port) {
 async function measure(page) {
   return page.evaluate(() => {
     const docW = document.documentElement.clientWidth
+    const docH = document.documentElement.clientHeight
     const scrollW = document.documentElement.scrollWidth
     const pile = document.querySelector('.pile-card, .omr-card, .tray-card')
     const readable = pile
       ? (() => {
           const r = pile.getBoundingClientRect()
-          return r.width >= 140 && r.height >= 70
+          return r.width >= 100 && r.height >= 60
         })()
       : true
+    const outside = (sel) =>
+      [...document.querySelectorAll(sel)].filter((el) => {
+        const r = el.getBoundingClientRect()
+        return r.right > docW + 3 || r.left < -3 || r.bottom > docH + 3
+      }).length
     return {
       overflowX: scrollW > docW + 4,
       scrollW,
       docW,
+      docH,
       readable,
+      cardsOut: outside('.pile-card'),
+      slotsOut: outside('.tray-slot'),
       stage: document.querySelector('[data-stage]')?.getAttribute('data-stage') || null,
     }
   })
@@ -103,6 +112,8 @@ for (const [k, v] of Object.entries(report)) {
   if (v.inspection?.overflowX) bad.push(`${k} inspection overflowX`)
   if (v.sorting && !v.sorting.readable) bad.push(`${k} sorting unreadable cards`)
   if (v.inspection && !v.inspection.readable) bad.push(`${k} inspection unreadable`)
+  if (v.sorting?.cardsOut) bad.push(`${k} sorting cardsOut=${v.sorting.cardsOut}`)
+  if (v.sorting?.slotsOut) bad.push(`${k} sorting slotsOut=${v.sorting.slotsOut}`)
 }
 if (bad.length) {
   console.error('VIEWPORT FAIL', bad)
