@@ -7,14 +7,15 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "screenshots": "node scripts/screenshots.mjs"
+    "screenshots": "node scripts/screenshots.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "devDependencies": {
     "playwright": "^1.64.1",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
   },
-  "description": "교사 잡무 연습 미니게임 모음",
+  "description": "\uad50\uc0ac \uc7a1\ubb34 \uc5f0\uc2b5 \ubbf8\ub2c8\uac8c\uc784 \ubaa8\uc74c",
   "dependencies": {
     "@types/three": "^0.187.0",
     "three": "^0.187.0"

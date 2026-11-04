@@ -9,7 +9,7 @@ import {
   studentForCard,
 } from './game/generator'
 import { computeScore, scoreInspection, scoreSort } from './game/scoring'
-import { renderCardShell, renderOmrFront, renderRosterSheet } from './game/omrRender'
+import { renderDeskThumb, renderOmrFront, renderRosterSheet } from './game/omrRender'
 import { loadBest, saveBest } from './game/storage'
 import {
   DIFFICULTIES,
@@ -41,6 +41,41 @@ let pile: string[] = []
 let tray: string[] = []
 let selectedPileId: string | null = null
 let judgments = new Map<string, { selected: ErrorType[]; disposition: Disposition }>()
+
+declare global {
+  interface Window {
+    __TS_E2E__?: {
+      stage: Stage
+      seed: number
+      difficulty: DifficultyId
+      expectedOrder: string[]
+      cards: Array<{ id: string; injectedErrors: ErrorType[]; disposition: Disposition }>
+      headcount: { enrolled: number; present: number; absent: number }
+      finalScore: GameScore | null
+    }
+  }
+}
+
+function syncE2e() {
+  if (!data) {
+    window.__TS_E2E__ = undefined
+    return
+  }
+  window.__TS_E2E__ = {
+    stage,
+    seed: data.config.seed,
+    difficulty: data.config.difficulty,
+    expectedOrder: expectedOrder(data.roster, data.cards),
+    cards: data.cards.map((c) => ({
+      id: c.id,
+      injectedErrors: [...c.injectedErrors],
+      disposition: expectedDisposition(c),
+    })),
+    headcount: headcountTruth(data.roster),
+    finalScore,
+  }
+}
+
 let inspectIndex = 0
 let startedAt = 0
 let headcountOk = false
@@ -123,20 +158,28 @@ function go(next: Stage) {
 function render() {
   switch (stage) {
     case 'hub':
-      return renderHub()
+      renderHub()
+      break
     case 'difficulty':
-      return renderDifficulty()
+      renderDifficulty()
+      break
     case 'howto':
-      return renderHowto()
+      renderHowto()
+      break
     case 'headcount':
-      return renderHeadcount()
+      renderHeadcount()
+      break
     case 'sorting':
-      return renderSorting()
+      renderSorting()
+      break
     case 'inspection':
-      return renderInspection()
+      renderInspection()
+      break
     case 'results':
-      return renderResults()
+      renderResults()
+      break
   }
+  syncE2e()
 }
 
 function shell(body: string, opts?: { top?: string; desk?: boolean; stageClass?: string }) {
@@ -159,28 +202,67 @@ function shell(body: string, opts?: { top?: string; desk?: boolean; stageClass?:
 
 function renderHub() {
   const best = loadBest()
+  const played = [best.easy, best.normal, best.hard].filter(Boolean).length
   shell(
     `
 <section class="panel hub-panel" data-stage="hub">
+  <div class="hub-banner" aria-hidden="true">
+    <svg viewBox="0 0 960 220" class="hub-scene" role="img">
+      <defs>
+        <linearGradient id="win" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#fef3c7"/><stop offset="100%" stop-color="#fdba74"/>
+        </linearGradient>
+        <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#f8efe3"/><stop offset="100%" stop-color="#e7d5c0"/>
+        </linearGradient>
+        <linearGradient id="desk" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#5a3424"/><stop offset="50%" stop-color="#7a4a32"/><stop offset="100%" stop-color="#4a2a1c"/>
+        </linearGradient>
+      </defs>
+      <rect width="960" height="220" fill="url(#wall)"/>
+      <rect x="0" y="168" width="960" height="52" fill="#d6c0a8"/>
+      <rect x="36" y="22" width="170" height="100" rx="4" fill="url(#win)" stroke="#b45309" stroke-width="4"/>
+      <line x1="121" y1="22" x2="121" y2="122" stroke="#b45309" stroke-width="3"/>
+      <line x1="36" y1="72" x2="206" y2="72" stroke="#b45309" stroke-width="3"/>
+      <rect x="230" y="36" width="110" height="86" fill="#0f766e"/>
+      <rect x="245" y="52" width="80" height="10" fill="#99f6e4"/>
+      <rect x="245" y="70" width="62" height="8" fill="#ccfbf1"/>
+      <rect x="245" y="88" width="50" height="8" fill="#99f6e4"/>
+      <rect x="360" y="118" width="560" height="78" fill="url(#desk)"/>
+      <rect x="380" y="88" width="78" height="48" fill="#fffef8" stroke="#c23b55" stroke-width="2" transform="rotate(-8 419 112)"/>
+      <rect x="470" y="96" width="78" height="48" fill="#fffef8" stroke="#c23b55" stroke-width="2" transform="rotate(5 509 120)"/>
+      <rect x="560" y="90" width="78" height="48" fill="#be123c" transform="rotate(-3 599 114)"/>
+      <text x="575" y="120" font-size="14" fill="#fff" font-weight="700">답안</text>
+      <rect x="680" y="100" width="50" height="34" fill="#faf6ef" stroke="#78716c" stroke-width="1.5"/>
+      <circle cx="820" cy="70" r="26" fill="#fef3c7" stroke="#ca8a04" stroke-width="3"/>
+      <text x="808" y="78" font-size="22">☕</text>
+      <text x="40" y="198" font-size="15" fill="#57534e">교무실 책상 · 창가 햇살 · 잡무는 여기서 연습</text>
+    </svg>
+  </div>
   <div class="hub-hero">
     <p class="eyebrow">Teacher Simulator</p>
     <h1>교사의 잡무,<br/>미니게임으로 손에 익히기</h1>
     <p class="lead">예비교사·실습생·학생을 위한 현장 잡무 연습. 서류는 진짜처럼, 실수는 여기서.</p>
+    <div class="hub-summary">
+      <span>클리어한 난이도 <b>${played}/3</b></span>
+      <span>OMR 최고 <b>${Math.max(best.easy?.score ?? 0, best.normal?.score ?? 0, best.hard?.score ?? 0) || '—'}</b></span>
+    </div>
   </div>
   <div class="game-grid">
     <button type="button" class="game-tile open" id="tile-omr">
+      <span class="tile-icon" aria-hidden="true">▤</span>
       <span class="tile-badge">플레이 가능</span>
       <h2>OMR 카드 검사</h2>
       <p>인원 확인 → 정렬·뒤집기 → 이상 발견 → 교과 확인</p>
       <ul class="best-line">
-        <li>쉬움 최고 ${best.easy?.score ?? '—'}점</li>
+        <li>쉬움 ${best.easy?.score ?? '—'}점</li>
         <li>보통 ${best.normal?.score ?? '—'}점</li>
         <li>어려움 ${best.hard?.score ?? '—'}점</li>
       </ul>
     </button>
-    <div class="game-tile locked"><span class="lock">잠김</span><h2>출결 정리</h2><p>전자·종이 출석부 대조</p></div>
-    <div class="game-tile locked"><span class="lock">잠김</span><h2>생기부 검토</h2><p>금지 표현·맞춤법</p></div>
-    <div class="game-tile locked"><span class="lock">잠김</span><h2>가정통신문 교정</h2><p>날짜·금액·오탈자</p></div>
+    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true">☑</span><span class="lock">잠김</span><h2>출결 정리</h2><p>전자·종이 출석부 대조</p></div>
+    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true">✎</span><span class="lock">잠김</span><h2>생기부 검토</h2><p>금지 표현·맞춤법</p></div>
+    <div class="game-tile locked"><span class="tile-icon" aria-hidden="true">✉</span><span class="lock">잠김</span><h2>가정통신문 교정</h2><p>날짜·금액·오탈자</p></div>
   </div>
 </section>`,
     { stageClass: 'stage-hub' },
@@ -306,6 +388,8 @@ function showToast(msg: string) {
 
 function renderSorting() {
   const d = data!
+  const present = d.roster.filter((s) => !s.absent)
+  const expected = expectedOrder(d.roster, d.cards)
   const bad = [...pile, ...tray].filter((id) => {
     const c = cardsById.get(id)!
     return c.faceDown || c.upsideDown
@@ -315,27 +399,44 @@ function renderSorting() {
   const pileHtml = pile
     .map((id, i) => {
       const card = cardsById.get(id)!
-      const rot = -18 + ((i * 37) % 36)
-      const x = (i % 5) * 18 - 30
-      const y = Math.floor(i / 5) * 14 + (i % 3) * 6
+      const n = Math.max(1, pile.length)
+      const t = n === 1 ? 0 : i / (n - 1) // 0..1
+      const rot = -16 + t * 32 + ((i % 3) - 1) * 4
+      const lift = (i % 5) * 6
       return `
 <div class="desk-card pile-card ${selectedPileId === id ? 'selected' : ''}" data-id="${id}" draggable="true"
-  style="--r:${rot}deg; --x:${x}px; --y:${y}px; z-index:${i + 1}">
-  ${renderCardShell(card, { compact: true })}
+  style="--r:${rot}deg; --lift:${lift}px; --tilt:${3 + (i % 3)}deg; z-index:${i + 1}">
+  ${renderDeskThumb(card)}
 </div>`
     })
     .join('')
 
-  const trayHtml = tray
-    .map((id, i) => {
+  const trayHtml = present
+    .map((stu, i) => {
+      const id = tray[i]
+      const expId = expected[i]
+      if (!id) {
+        return `
+<div class="tray-slot empty-slot" data-slot="${i}">
+  <span class="slot-label">슬롯 ${i + 1} · 예상 ${String(stu.number).padStart(2, '0')}</span>
+  <div class="slot-ghost">${String(stu.number).padStart(2, '0')} ${stu.name}</div>
+</div>`
+      }
       const card = cardsById.get(id)!
+      const ok = id === expId && !card.faceDown && !card.upsideDown
+      const orderOk = id === expId
+      const cls = orderOk && !card.faceDown && !card.upsideDown ? 'slot-ok' : orderOk ? 'slot-warn' : 'slot-bad'
       return `
-<div class="desk-card tray-card" data-id="${id}" data-tray-index="${i}" draggable="true">
-  <span class="tray-idx">${i + 1}</span>
-  ${renderCardShell(card, { compact: true })}
+<div class="tray-slot ${cls}" data-slot="${i}" data-id="${id}">
+  <span class="slot-label">슬롯 ${i + 1} · 예상 ${String(stu.number).padStart(2, '0')}
+    <em>${ok ? '✓' : orderOk ? '방향!' : '순서✗'}</em>
+  </span>
+  <div class="desk-card tray-card" data-id="${id}" data-tray-index="${i}" draggable="true">
+    ${renderDeskThumb(card)}
+  </div>
   <div class="tray-tools">
     <button type="button" class="btn tiny" data-act="left" data-i="${i}" ${i === 0 ? 'disabled' : ''}>←</button>
-    <button type="button" class="btn tiny" data-act="right" data-i="${i}" ${i === tray.length - 1 ? 'disabled' : ''}>→</button>
+    <button type="button" class="btn tiny" data-act="right" data-i="${i}" ${i >= tray.length - 1 ? 'disabled' : ''}>→</button>
     <button type="button" class="btn tiny accent" data-act="flip" data-i="${i}">뒷면</button>
     <button type="button" class="btn tiny accent" data-act="spin" data-i="${i}">위아래</button>
     <button type="button" class="btn tiny" data-act="to-pile" data-i="${i}">더미로</button>
@@ -347,28 +448,35 @@ function renderSorting() {
   shell(
     `
 <section class="sorting-desk" data-stage="sorting">
-  <aside class="desk-roster">
-    ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
-    <p class="side-note light">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
-  </aside>
-  <div class="desk-surface">
-    <div class="pile-zone" id="pile-zone">
-      <h2>흐트러진 더미 <small>${pile.length}</small></h2>
-      <div class="pile-area" id="pile-area">${pileHtml || '<p class="empty">더미가 비었습니다</p>'}</div>
-      <div class="pile-actions">
-        <button type="button" class="btn tiny" id="btn-flip-sel" ${selectedPileId ? '' : 'disabled'}>선택 뒷면 뒤집기</button>
-        <button type="button" class="btn tiny" id="btn-spin-sel" ${selectedPileId ? '' : 'disabled'}>선택 위아래</button>
-        <button type="button" class="btn tiny primary" id="btn-to-tray" ${selectedPileId ? '' : 'disabled'}>트레이로 →</button>
+  <div class="desk-table">
+    <div class="desk-window" aria-hidden="true"></div>
+    <aside class="desk-roster paper-object">
+      ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
+      <p class="side-note">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
+    </aside>
+    <div class="desk-work">
+      <div class="pile-zone ${pile.length ? '' : 'is-empty'}" id="pile-zone">
+        <header class="zone-head">
+          <h2>흐트러진 더미 <small>${pile.length}</small></h2>
+          <div class="pile-actions toolbar">
+            <button type="button" class="btn tiny" id="btn-flip-sel" ${selectedPileId ? '' : 'disabled'}>선택 카드 뒤집기</button>
+            <button type="button" class="btn tiny" id="btn-spin-sel" ${selectedPileId ? '' : 'disabled'}>선택 위아래</button>
+            <button type="button" class="btn tiny primary" id="btn-to-tray" ${selectedPileId ? '' : 'disabled'}>트레이로 →</button>
+          </div>
+        </header>
+        <div class="pile-area" id="pile-area">${pileHtml || '<p class="empty">더미가 비었습니다 — 아래 트레이를 확인하세요</p>'}</div>
+      </div>
+      <div class="tray-zone ${pile.length ? '' : 'is-expanded'}" id="tray-zone">
+        <header class="zone-head">
+          <h2>정렬 트레이 <small>번호 오름차순 · 초록=맞음</small></h2>
+        </header>
+        <div class="tray-rail" id="tray-rail">${trayHtml}</div>
       </div>
     </div>
-    <div class="tray-zone" id="tray-zone">
-      <h2>정렬 트레이 <small>번호 오름차순</small></h2>
-      <div class="tray-rail" id="tray-rail">${trayHtml || '<p class="empty">카드를 더미에서 끌어오세요</p>'}</div>
+    <div class="actions sticky-actions desk-footer-actions">
+      <button class="btn ghost" id="btn-autosort" type="button">수기번호순(연습)</button>
+      <button class="btn primary" id="btn-done-sort" type="button">정렬 완료 · 검사</button>
     </div>
-  </div>
-  <div class="actions sticky-actions">
-    <button class="btn ghost" id="btn-autosort" type="button">수기번호순(연습)</button>
-    <button class="btn primary" id="btn-done-sort" type="button">정렬 완료 · 검사</button>
   </div>
   <div class="toast" id="toast" hidden></div>
 </section>`,
@@ -481,7 +589,7 @@ function bindSorting() {
   })
 
   // tap card body in tray to flip back / spin with modifiers? single click flip back
-  app.querySelectorAll<HTMLElement>('.tray-card .card-3d').forEach((el) => {
+  app.querySelectorAll<HTMLElement>('.tray-card .desk-thumb, .tray-card .card-3d').forEach((el) => {
     el.addEventListener('click', () => {
       const id = el.dataset.cardId!
       const c = cardsById.get(id)!
@@ -561,18 +669,20 @@ function renderInspection() {
         <div class="zoom-canvas" id="zoom-canvas" style="transform:translate(${panX}px,${panY}px) scale(${zoom})">
           ${renderOmrFront(card, { student, showRosterHint: true })}
         </div>
+        <div class="magnifier" id="magnifier" hidden></div>
       </div>
+      <p class="side-note mag-hint">마우스 위에 돋보기 렌즈 · 드래그로 이동 · +/− 로 확대</p>
     </div>
     <aside class="inspect-judge">
       <h2>발견한 이상</h2>
       <form id="judge-form" class="judge-form">${checks}</form>
       <h2>조치</h2>
       <form id="disp-form" class="disp-form">${dispositions}</form>
+      <div class="actions inspect-actions">
+        <button class="btn ghost" id="btn-prev" type="button" ${inspectIndex === 0 ? 'disabled' : ''}>←</button>
+        <button class="btn primary" id="btn-submit" type="button">${inspectIndex < order.length - 1 ? '저장 후 다음' : '제출 · 결과'}</button>
+      </div>
     </aside>
-  </div>
-  <div class="actions sticky-actions">
-    <button class="btn ghost" id="btn-prev" type="button" ${inspectIndex === 0 ? 'disabled' : ''}>←</button>
-    <button class="btn primary" id="btn-submit" type="button">${inspectIndex < order.length - 1 ? '저장 후 다음' : '제출 · 결과'}</button>
   </div>
   <div class="toast" id="toast" hidden></div>
 </section>`,
@@ -696,6 +806,37 @@ function bindInspection(card: OmrCard, order: string[]) {
   vp?.addEventListener('pointerup', () => {
     dragging = false
   })
+
+  const mag = app.querySelector<HTMLElement>('#magnifier')
+  const canvas = app.querySelector<HTMLElement>('#zoom-canvas')
+  if (vp && mag && canvas) {
+    const syncMag = (e: PointerEvent) => {
+      if (dragging) {
+        mag.hidden = true
+        return
+      }
+      const rect = vp.getBoundingClientRect()
+      const x = e.clientX - rect.left
+      const y = e.clientY - rect.top
+      const size = 140
+      mag.hidden = false
+      mag.style.width = `${size}px`
+      mag.style.height = `${size}px`
+      mag.style.left = `${x - size / 2}px`
+      mag.style.top = `${y - size / 2}px`
+      // clone scaled view under lens
+      const scale = 2.2 * zoom
+      const ox = -(x - panX) * (scale / zoom) + size / 2
+      const oy = -(y - panY) * (scale / zoom) + size / 2
+      mag.innerHTML = `<div class="mag-inner" style="transform:translate(${ox}px,${oy}px) scale(${scale})">${canvas.innerHTML}</div>`
+    }
+    vp.addEventListener('pointermove', (e) => {
+      if (!dragging) syncMag(e)
+    })
+    vp.addEventListener('pointerleave', () => {
+      mag.hidden = true
+    })
+  }
 }
 
 function finishGame() {
@@ -781,4 +922,3 @@ function renderResults() {
 bootHub()
 
 // silence unused in tree-shaking edge
-void expectedDisposition

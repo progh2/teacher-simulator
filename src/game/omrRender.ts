@@ -135,6 +135,48 @@ export function renderOmrBack(card: OmrCard): string {
 </article>`
 }
 
+
+/** 책상 정렬용 — 성명·번호가 크게 보이는 썸네일 (compact OMR 대체) */
+export function renderDeskThumb(card: OmrCard): string {
+  const no = String(card.handwrittenNumber).padStart(2, '0')
+  const form =
+    card.formType === 'odd' ? '홀' : card.formType === 'even' ? '짝' : '문형?'
+  const ori = [
+    card.faceDown ? 'is-back' : '',
+    card.upsideDown ? 'is-upsidedown' : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+  const front = `
+<article class="desk-thumb-face front">
+  <div class="thumb-stripe" aria-hidden="true"></div>
+  <div class="thumb-no">${no}</div>
+  <div class="thumb-name">${card.handwrittenName}</div>
+  <div class="thumb-meta">
+    <span>${card.handwrittenGrade}-${card.handwrittenClass}</span>
+    <span class="thumb-form">${form}</span>
+  </div>
+  <div class="thumb-flags">
+    ${card.proctorSigned ? '' : '<i class="tf">감독?</i>'}
+    ${card.hasCorrectionTape ? '<i class="tf">테이프</i>' : ''}
+    ${card.wrongPen ? '<i class="tf">펜</i>' : ''}
+    ${card.damaged ? '<i class="tf">손상</i>' : ''}
+  </div>
+</article>`
+  const back = `
+<article class="desk-thumb-face back">
+  <div class="thumb-back-label">답안지 뒷면</div>
+</article>`
+  return `
+<div class="desk-thumb card-3d ${ori}" data-card-id="${card.id}" tabindex="0"
+  aria-label="OMR ${no}번 ${card.handwrittenName}">
+  <div class="card-3d-inner desk-thumb-inner">
+    <div class="card-face face-front">${front}</div>
+    <div class="card-face face-back">${back}</div>
+  </div>
+</div>`
+}
+
 /** 책상용 카드 셸 — faceDown / upsideDown 지원 */
 export function renderCardShell(card: OmrCard, opts: RenderOpts = {}): string {
   const compact = opts.compact ?? false
