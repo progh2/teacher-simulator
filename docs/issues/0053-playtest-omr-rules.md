@@ -22,3 +22,6 @@
 - [x] e2e: immediate+subject_review, multi, tape align, no magnifier, absent blanks
 - [x] score-smoke: stamp coverage deterministic
 - [x] 스크린샷 e2e 갱신
+
+
+후속: 0054에서 수능 문구·문형 제거, 수기 과목명 추가.

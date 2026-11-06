@@ -135,12 +135,10 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
   const { compact = false, highlight = [] } = opts
   const hl = (key: string) => (highlight.includes(key) ? 'hl-err' : '')
 
-  const formOdd = card.formType === 'odd'
-  const formEven = card.formType === 'even'
   const idBad = card.injectedErrors.includes('id_mark')
   const nameBad = card.injectedErrors.includes('name_mismatch')
   const subjBad = card.injectedErrors.includes('missing_subject')
-  const formBad = card.injectedErrors.includes('form_type')
+  const subjNameBad = card.injectedErrors.includes('subject_name_mismatch')
   const procBad = card.injectedErrors.includes('missing_proctor')
 
   const damageCls = card.damaged ? `dmg-${card.damageKind ?? 'fold'} has-damage` : ''
@@ -161,10 +159,10 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
         </div>
       </section>`
 
-  const subjectLabel =
+  const codeLabel =
     card.subjectCode == null
       ? `<span class="subj-missing">과목코드 미표기</span>`
-      : `<span class="subj-code">${String(card.subjectCode).padStart(2, '0')}</span> <span class="subj-name">${card.subjectName}</span>`
+      : `<span class="subj-code">${String(card.subjectCode).padStart(2, '0')}</span>`
 
   return `
 <article class="omr-card front ${compact ? 'is-compact' : ''} ${damageCls} ${card.wrongPen ? 'pen-wrong' : ''} ${card.isAbsentBlank ? 'is-absent-blank' : ''}" data-card-id="${card.id}">
@@ -174,25 +172,21 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
   ${dmg}
   <header class="omr-head">
     <div class="omr-brand">
-      <strong>전국연합학력평가</strong>
-      <span>답안지 (OMR) · 데모</span>
+      <strong>학교 정기고사</strong>
+      <span>답안지 (OMR) · 연습용</span>
     </div>
     <div class="omr-subject-chip ${hl('missing_subject')}" ${subjBad ? 'data-region="missing_subject"' : ''}>
-      <span class="subj-cap">응시 과목</span>
-      ${subjectLabel}
-    </div>
-    <div class="form-type ${hl('form_type')}" ${formBad ? 'data-region="form_type"' : ''}>
-      <span class="ft-label">문형</span>
-      <span class="bub form ${formOdd ? 'filled' : ''}"><i>홀</i></span>
-      <span class="bub form ${formEven ? 'filled' : ''}"><i>짝</i></span>
+      <span class="subj-cap">과목코드</span>
+      ${codeLabel}
     </div>
   </header>
   <section class="omr-id">
-    <div class="hand-block ${hl('name_mismatch')}" ${nameBad ? 'data-region="name_mismatch"' : ''}>
+    <div class="hand-block ${hl('name_mismatch')} ${hl('subject_name_mismatch')}">
       <div class="hand-line"><span>학년</span><b class="handwrite">${card.handwrittenGrade}</b></div>
       <div class="hand-line"><span>반</span><b class="handwrite">${card.handwrittenClass}</b></div>
       <div class="hand-line"><span>번호</span><b class="handwrite">${String(card.handwrittenNumber).padStart(2, '0')}</b></div>
-      <div class="hand-line name"><span>성명</span><b class="handwrite">${card.handwrittenName}</b></div>
+      <div class="hand-line name" ${nameBad ? 'data-region="name_mismatch"' : ''}><span>성명</span><b class="handwrite">${card.handwrittenName}</b></div>
+      <div class="hand-line subject" ${subjNameBad ? 'data-region="subject_name_mismatch"' : ''}><span>과목명</span><b class="handwrite">${card.handwrittenSubject}</b></div>
     </div>
     <div class="mark-block ${hl('id_mark')} ${hl('missing_subject')}">
       ${oneDigitMark('학년', card.markedGrade, 3, idBad ? 'id_mark' : undefined)}
@@ -225,8 +219,6 @@ export function renderOmrBack(card: OmrCard): string {
 
 export function renderDeskThumb(card: OmrCard): string {
   const no = String(card.handwrittenNumber).padStart(2, '0')
-  const form =
-    card.formType === 'odd' ? '홀' : card.formType === 'even' ? '짝' : '문형?'
   const ori = [
     card.faceDown ? 'is-back' : '',
     card.upsideDown ? 'is-upsidedown' : '',
@@ -240,8 +232,7 @@ export function renderDeskThumb(card: OmrCard): string {
   <div class="thumb-no">${no}</div>
   <div class="thumb-name">${card.handwrittenName}</div>
   <div class="thumb-meta">
-    <span class="thumb-subj">${card.subjectCode ?? '??'} ${card.subjectName}</span>
-    <span class="thumb-form">${form}</span>
+    <span class="thumb-subj">${card.subjectCode ?? '??'} ${card.handwrittenSubject}</span>
   </div>
   <div class="thumb-flags">
     ${card.isAbsentBlank ? '<i class="tf warn">결시 빈장</i>' : ''}
@@ -323,7 +314,7 @@ export function renderRosterSheet(
 <div class="roster-sheet">
   <div class="roster-sheet-head">
     <strong>${grade}학년 ${classNo}반 학생 명렬표</strong>
-    <span>전국연합학력평가 · 응시 확인용${subj}</span>
+    <span>학교 정기고사 · 응시 확인용${subj}</span>
   </div>
   <table>
     <thead><tr><th>번호</th><th>성명</th><th>수험번호</th><th>응시</th></tr></thead>

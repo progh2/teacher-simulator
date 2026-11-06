@@ -415,7 +415,7 @@ function renderHowto() {
     <li><span class="howto-ico" aria-hidden="true">①</span><div><b>응시 인원 확인</b><p>응시자 + 결시자 = 재적. 결시생은 빈 답안지를 꺼내 결시·사유를 명렬과 대조합니다.</p></div></li>
     <li><span class="howto-ico" aria-hidden="true">②</span><div><b>정렬·방향</b><p>${d.config.multiClass ? '반별로 묶고 각 반 안에서는 번호(가나다)순' : '번호순'}으로 트레이에 올립니다. 뒷면·위아래(180°)를 바로잡습니다. F/R/Enter.</p></div></li>
     <li><span class="howto-ico" aria-hidden="true">③</span><div><b>이상 발견</b><p>${INSPECTION_MODE_HINTS[mode]} 카드의 문제 부위를 클릭하면 이상이 선택됩니다. 교사가 답안을 고치지 않습니다.</p></div></li>
-    <li><span class="howto-ico" aria-hidden="true">④</span><div><b>조치</b><p>기재 오류(학번·이름·과목)만 «학생 호출하여 기재 사항 확인». 답안 마킹 이상은 «학생 호출 없이 오답 처리». 판독이 어려우면 교과 확인.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">④</span><div><b>조치</b><p>기재 오류(학번·이름·과목명·과목코드)만 «학생 호출하여 기재 사항 확인». 답안 마킹 이상은 «학생 호출 없이 오답 처리». 판독이 어려우면 교과 확인.</p></div></li>
   </ol>
   <aside class="field-rules" aria-label="현장 규칙">
     <b>현장 규칙 요약</b>
@@ -922,7 +922,15 @@ function bindInspection(card: OmrCard, order: string[]) {
     let disp = cur.disposition
     const errs = [...set].filter((e) => e !== 'ok')
     if (set.has('ok') && set.size === 1) disp = 'ok'
-    else if (errs.some((e) => e === 'id_mark' || e === 'name_mismatch' || e === 'missing_subject'))
+    else if (
+      errs.some(
+        (e) =>
+          e === 'id_mark' ||
+          e === 'name_mismatch' ||
+          e === 'missing_subject' ||
+          e === 'subject_name_mismatch',
+      )
+    )
       disp = 'call_identity'
     else if (errs.some((e) => e === 'duplicate_mark' || e === 'missing_mark' || e === 'incomplete_mark'))
       disp = 'score_wrong'

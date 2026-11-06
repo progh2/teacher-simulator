@@ -25,9 +25,9 @@ const ERROR_POOL: ErrorType[] = [
   'missing_mark',
   'incomplete_mark',
   'missing_subject',
+  'subject_name_mismatch',
   'missing_proctor',
   'correction_tape',
-  'form_type',
   'wrong_pen',
   'damaged',
 ]
@@ -40,6 +40,7 @@ const MUST_COVER: ErrorType[] = [
   'wrong_pen',
   'id_mark',
   'duplicate_mark',
+  'subject_name_mismatch',
 ]
 
 function pad2(n: number): string {
@@ -125,6 +126,12 @@ function applyError(
     case 'missing_subject':
       card.subjectCode = null
       break
+    case 'subject_name_mismatch': {
+      const others = SUBJECT_CATALOG.filter((s) => s.name !== card.subjectName)
+      const pick = others[Math.floor(rng() * others.length)]
+      card.handwrittenSubject = pick?.name ?? '기타과목'
+      break
+    }
     case 'missing_proctor':
       card.proctorSigned = false
       break
@@ -134,9 +141,6 @@ function applyError(
       card.correctionTapeQi = Math.floor(rng() * questionCount)
       break
     }
-    case 'form_type':
-      card.formType = null
-      break
     case 'wrong_pen':
       card.wrongPen = true
       break
@@ -198,7 +202,7 @@ function makePresentCard(
     markedNumber: st.number,
     subjectCode: config.subjectCode,
     subjectName: config.subjectName,
-    formType: (rng() < 0.5 ? 'odd' : 'even') as 'odd' | 'even',
+    handwrittenSubject: config.subjectName,
     answers: correctAnswers(rng, config.questionCount),
     proctorSigned: true,
     hasCorrectionTape: false,
@@ -247,7 +251,7 @@ function makeAbsentBlank(
     markedNumber: st.number,
     subjectCode: config.subjectCode,
     subjectName: config.subjectName,
-    formType: null,
+    handwrittenSubject: config.subjectName,
     answers: Array.from({ length: config.questionCount }, () => ({
       choices: [] as number[],
       style: 'normal' as MarkStyle,

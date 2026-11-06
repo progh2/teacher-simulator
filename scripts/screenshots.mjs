@@ -73,9 +73,6 @@ async function judgeCurrent(page) {
       out.push('damaged')
     }
 
-    const formFilled = card.querySelectorAll('.form-type .bub.filled').length
-    if (card.querySelector('.form-type') && formFilled === 0) out.push('form_type')
-
     // subject digit groups
     const subj = [...card.querySelectorAll('.digit-group')].find((g) =>
       (g.querySelector('.group-label')?.textContent || '').includes('과목'),

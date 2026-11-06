@@ -2011,3 +2011,8 @@ kbd {
 .app-root.stage-inspection .disp { padding: 5px 7px; }
 .app-root.stage-inspection .disp small { font-size: 10px; }
 .app-root.stage-inspection .inspect-judge { overflow: auto; max-height: calc(100vh - 120px); }
+
+/* school exam: handwritten subject name */
+.hand-line.subject .handwrite { font-size: 18px; }
+.omr-head .form-type { display: none !important; }
+.thumb-form { display: none !important; }
