@@ -1,16 +1,30 @@
 {
-  "at": "2026-11-04T18:13:48.064Z",
+  "at": "2026-11-06T01:04:51.117Z",
   "results": [
     {
       "diff": "easy",
       "seed": 20261104,
-      "total": 152,
-      "expectedTotal": 152,
-      "maxTotal": 152
+      "total": 160,
+      "expectedTotal": 160,
+      "maxTotal": 160
+    },
+    {
+      "diff": "easy",
+      "seed": 20261114,
+      "total": 160,
+      "expectedTotal": 160,
+      "maxTotal": 160
     },
     {
       "diff": "normal",
       "seed": 20261105,
+      "total": 240,
+      "expectedTotal": 240,
+      "maxTotal": 240
+    },
+    {
+      "diff": "multi",
+      "seed": 20261107,
       "total": 224,
       "expectedTotal": 224,
       "maxTotal": 224

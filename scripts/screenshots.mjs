@@ -99,8 +99,16 @@ async function judgeCurrent(page) {
     }
   }
 
-  // disposition: ok -> 정상, else 교과 확인
-  const wantDisp = selected.includes('ok') && selected.length === 1 ? 'ok' : 'to_subject'
+  // disposition from e2e expected when available
+  const cardId = await page.evaluate(() => {
+    const order = window.__TS_E2E__?.expectedOrder
+    const idx = [...document.querySelectorAll('#dot-nav .dot')].findIndex((d) => d.classList.contains('current'))
+    return order?.[idx]
+  })
+  const wantDisp = await page.evaluate((id) => {
+    const c = window.__TS_E2E__?.cards?.find((x) => x.id === id)
+    return c?.disposition || 'to_subject'
+  }, cardId)
   for (const inp of await page.locator('#disp-form input[type=radio]').all()) {
     const val = await inp.getAttribute('value')
     if (val === wantDisp && !(await inp.isChecked())) {
@@ -137,16 +145,19 @@ async function main() {
   // Start easy with fixed seed via URL after startRun — click easy then inject seed by reloading with query
   // Difficulty cards: click first .diff-card
   await page.click('.diff-card')
+  await page.waitForSelector('[data-stage="mode"], [data-stage="howto"]')
+  if (await page.locator('[data-stage="mode"]').count()) {
+    await page.screenshot({ path: join(outDir, '02b-mode.png'), fullPage: true })
+    await page.locator('.mode-card[data-mode="subject_review"]').click()
+  }
   await page.waitForSelector('[data-stage="howto"]')
   await page.screenshot({ path: join(outDir, '03-howto.png'), fullPage: true })
 
-  // Force seed for reproducibility: navigate with ?diff=easy&seed=20261104 after howto path via history
-  await page.goto(`${base}?diff=easy&seed=20261104`, { waitUntil: 'networkidle' })
-  // URL may boot hub or auto-start — check
+  // Force seed for reproducibility
+  await page.goto(`${base}?diff=easy&mode=subject_review&seed=20261104`, { waitUntil: 'networkidle' })
   if (await page.locator('[data-stage="hub"]').count()) {
     await page.click('#tile-omr')
     await page.waitForSelector('[data-stage="difficulty"]')
-    // click easy specifically
     const easy = page.locator('.diff-card').filter({ hasText: '쉬움' })
     if (await easy.count()) await easy.first().click()
     else await page.click('.diff-card')
@@ -219,13 +230,16 @@ async function main() {
 
   // Mobile sorting
   await page.setViewportSize({ width: 390, height: 844 })
-  await page.goto(`${base}?diff=easy&seed=20261104`, { waitUntil: 'networkidle' })
+  await page.goto(`${base}?diff=easy&mode=subject_review&seed=20261104`, { waitUntil: 'networkidle' })
   if (await page.locator('[data-stage="hub"]').count()) {
     await page.click('#tile-omr')
     await page.waitForSelector('[data-stage="difficulty"]')
     const easy = page.locator('.diff-card').filter({ hasText: '쉬움' })
     if (await easy.count()) await easy.first().click()
     else await page.click('.diff-card')
+  }
+  if (await page.locator('[data-stage="mode"]').count()) {
+    await page.locator('.mode-card[data-mode="subject_review"]').click()
   }
   if (await page.locator('[data-stage="howto"]').count()) await page.click('#btn-go')
   await passHeadcount(page)

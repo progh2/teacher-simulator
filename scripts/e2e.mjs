@@ -41,15 +41,20 @@ function serve(port) {
   return new Promise((resolve) => server.listen(port, '127.0.0.1', () => resolve(server)))
 }
 
-async function bootDiff(page, base, diff, seed) {
-  await page.goto(`${base}?diff=${diff}&seed=${seed}`, { waitUntil: 'networkidle' })
+async function bootDiff(page, base, diff, seed, mode = 'subject_review') {
+  await page.goto(`${base}?diff=${diff}&mode=${mode}&seed=${seed}`, { waitUntil: 'networkidle' })
   if (await page.locator('[data-stage="hub"]').count()) {
     await page.click('#tile-omr')
     await page.waitForSelector('[data-stage="difficulty"]')
   }
   if (await page.locator('[data-stage="difficulty"]').count()) {
     await page.locator(`.diff-card[data-diff="${diff}"]`).click()
-    await page.waitForSelector('[data-stage="howto"]')
+    // URL already has mode → howto; otherwise mode screen
+    await page.waitForSelector('[data-stage="howto"], [data-stage="mode"]')
+    if (await page.locator('[data-stage="mode"]').count()) {
+      await page.locator(`.mode-card[data-mode="${mode}"]`).click()
+      await page.waitForSelector('[data-stage="howto"]')
+    }
   }
   if (await page.locator('[data-stage="howto"]').count()) {
     await page.click('#btn-go')
@@ -124,7 +129,7 @@ async function judgePerfect(page) {
   }
 }
 
-async function playRun(page, base, diff, seed, shotPrefix) {
+async function playRun(page, base, diff, seed, shotPrefix, mode = 'subject_review') {
   const errors = []
   const onConsole = (msg) => {
     if (msg.type() === 'error') errors.push(`console: ${msg.text()}`)
@@ -134,7 +139,7 @@ async function playRun(page, base, diff, seed, shotPrefix) {
   page.on('pageerror', onPage)
   page.on('dialog', async (d) => d.accept())
 
-  await bootDiff(page, base, diff, seed)
+  await bootDiff(page, base, diff, seed, mode)
   if (shotPrefix === 'easy') await page.screenshot({ path: join(shotDir, '04-headcount.png') })
 
   await passHeadcount(page)
@@ -213,26 +218,44 @@ async function playRun(page, base, diff, seed, shotPrefix) {
   await page.waitForSelector('[data-stage="inspection"]', { timeout: 8000 })
   if (shotPrefix === 'easy') {
     await page.screenshot({ path: join(shotDir, '08-inspection.png') })
+    // zoom + correction tape alignment + direct click mapping
     await page.click('#z-in')
     await page.click('#z-in')
-    // move mouse for magnifier over handwriting / bubbles
-    const target = page.locator('#zoom-canvas .handwrite, #zoom-canvas .digit-bubs').first()
-    const tbox = await target.boundingBox().catch(() => null)
-    const box = tbox || (await page.locator('#zoom-viewport').boundingBox())
-    if (box) {
-      const mx = box.x + box.width * 0.5
-      const my = box.y + box.height * 0.5
-      await page.mouse.move(mx, my)
-      await page.locator('#zoom-viewport').evaluate((el, p) => {
-        el.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: p.mx, clientY: p.my }))
-      }, { mx, my })
-      await page.waitForTimeout(300)
-      const magOk = await page.evaluate(() => {
-        const m = document.querySelector('#magnifier')
-        return !!m && !m.hidden && !!m.querySelector('.omr-card')
-      })
-      if (!magOk) throw new Error('magnifier hasOmr failed')
+    const tapeBefore = await page.evaluate(() => {
+      const tape = document.querySelector('.tape-trace')
+      if (!tape) return null
+      const r = tape.getBoundingClientRect()
+      const card = document.querySelector('.zoom-canvas .omr-card').getBoundingClientRect()
+      return { relTop: (r.top - card.top) / card.height, relLeft: (r.left - card.left) / card.width }
+    })
+    await page.click('#z-out')
+    const tapeAfter = await page.evaluate(() => {
+      const tape = document.querySelector('.tape-trace')
+      if (!tape) return null
+      const r = tape.getBoundingClientRect()
+      const card = document.querySelector('.zoom-canvas .omr-card').getBoundingClientRect()
+      return { relTop: (r.top - card.top) / card.height, relLeft: (r.left - card.left) / card.width }
+    })
+    if (tapeBefore && tapeAfter) {
+      if (Math.abs(tapeBefore.relTop - tapeAfter.relTop) > 0.03 || Math.abs(tapeBefore.relLeft - tapeAfter.relLeft) > 0.03) {
+        throw new Error(`tape alignment drift ${JSON.stringify({ tapeBefore, tapeAfter })}`)
+      }
     }
+    // no magnifier
+    const magGone = await page.evaluate(() => {
+      const m = document.querySelector('#magnifier')
+      return !m || m.hidden || getComputedStyle(m).display === 'none'
+    })
+    if (!magGone) throw new Error('magnifier should be removed')
+    // click a real error region if present
+    const clicked = await page.evaluate(() => {
+      const el = document.querySelector('#zoom-canvas [data-region]')
+      if (!el) return false
+      el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: 0, clientY: 0 }))
+      el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: 0, clientY: 0 }))
+      return true
+    })
+    if (clicked) await page.waitForTimeout(80)
     await page.screenshot({ path: join(shotDir, '09-inspection-zoom.png') })
     await page.click('#z-reset')
   }
@@ -269,9 +292,19 @@ async function playRun(page, base, diff, seed, shotPrefix) {
     throw new Error(`${diff}: total ${score.total} != ${expectedTotal} (maxTotal ${score.maxTotal})`)
   }
 
+  const meta = await page.evaluate(() => ({
+    mode: window.__TS_E2E__.inspectionMode,
+    subject: window.__TS_E2E__.subject,
+    absents: window.__TS_E2E__.cards.filter((c) => c.isAbsentBlank).length,
+    stampMissing: window.__TS_E2E__.cards.some((c) => c.injectedErrors.includes('missing_proctor')),
+  }))
+  if (meta.mode !== mode) throw new Error(`${diff}: mode ${meta.mode} != ${mode}`)
+  if (!meta.subject?.name) throw new Error(`${diff}: missing subject`)
+  if (meta.absents < 1) throw new Error(`${diff}: expected absent blank cards`)
+
   page.off('console', onConsole)
   page.off('pageerror', onPage)
-  return { diff, seed, score, errors, expectedTotal }
+  return { diff, seed, mode, score, errors, expectedTotal, meta }
 }
 
 async function main() {
@@ -292,26 +325,47 @@ async function main() {
     await page.waitForSelector('[data-stage="difficulty"]')
     await page.screenshot({ path: join(shotDir, '02-difficulty.png') })
     await page.locator('.diff-card[data-diff="easy"]').click()
+    await page.waitForSelector('[data-stage="mode"]')
+    await page.screenshot({ path: join(shotDir, '02b-mode.png') })
+    await page.locator('.mode-card[data-mode="subject_review"]').click()
     await page.waitForSelector('[data-stage="howto"]')
     await page.screenshot({ path: join(shotDir, '03-howto.png') })
     await page.close()
   }
 
-  // Easy perfect run
+  // Easy perfect run (subject review)
   {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
-    const r = await playRun(page, base, 'easy', 20261104, 'easy')
+    const r = await playRun(page, base, 'easy', 20261104, 'easy', 'subject_review')
     results.push(r)
     if (r.errors.length) throw new Error(`easy console errors: ${r.errors.join('; ')}`)
+    await page.close()
+  }
+
+  // Easy immediate (timed) perfect run
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    const r = await playRun(page, base, 'easy', 20261114, null, 'immediate')
+    results.push(r)
+    if (r.errors.length) throw new Error(`easy-immediate console errors: ${r.errors.join('; ')}`)
     await page.close()
   }
 
   // Normal perfect run
   {
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
-    const r = await playRun(page, base, 'normal', 20261105, null)
+    const r = await playRun(page, base, 'normal', 20261105, null, 'subject_review')
     results.push(r)
     if (r.errors.length) throw new Error(`normal console errors: ${r.errors.join('; ')}`)
+    await page.close()
+  }
+
+  // Multi-class perfect run
+  {
+    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } })
+    const r = await playRun(page, base, 'multi', 20261107, null, 'subject_review')
+    results.push(r)
+    if (r.errors.length) throw new Error(`multi console errors: ${r.errors.join('; ')}`)
     await page.close()
   }
 

@@ -1,17 +1,40 @@
-[
-  {
-    "diff": "easy",
-    "total": 151,
-    "max": 152
-  },
-  {
-    "diff": "normal",
-    "total": 223,
-    "max": 224
-  },
-  {
-    "diff": "hard",
-    "total": 295,
-    "max": 296
-  }
-]
+{
+  "stampHits": 240,
+  "runs": [
+    {
+      "diff": "easy",
+      "mode": "subject_review",
+      "total": 159,
+      "max": 160,
+      "cards": 10
+    },
+    {
+      "diff": "easy",
+      "mode": "immediate",
+      "total": 159,
+      "max": 160,
+      "cards": 10
+    },
+    {
+      "diff": "normal",
+      "mode": "subject_review",
+      "total": 239,
+      "max": 240,
+      "cards": 20
+    },
+    {
+      "diff": "hard",
+      "mode": "subject_review",
+      "total": 319,
+      "max": 320,
+      "cards": 30
+    },
+    {
+      "diff": "multi",
+      "mode": "subject_review",
+      "total": 223,
+      "max": 224,
+      "cards": 18
+    }
+  ]
+}
