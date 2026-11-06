@@ -5,6 +5,7 @@ import {
   generateGame,
   headcountTruth,
   parseDifficultyFromUrl,
+  parseModeFromUrl,
   parseSeedFromUrl,
   studentForCard,
 } from './game/generator'
@@ -17,6 +18,8 @@ import {
   DISPOSITION_LABELS,
   ERROR_HINTS,
   ERROR_LABELS,
+  INSPECTION_MODE_HINTS,
+  INSPECTION_MODE_LABELS,
   JUDGABLE_ERRORS,
   type DifficultyId,
   type Disposition,
@@ -24,6 +27,7 @@ import {
   type GameData,
   type GameScore,
   type InspectionJudgment,
+  type InspectionMode,
   type OmrCard,
   type SortResult,
   type Stage,
@@ -33,6 +37,7 @@ const app = document.querySelector<HTMLDivElement>('#app')!
 
 let stage: Stage = 'hub'
 let _difficulty: DifficultyId = parseDifficultyFromUrl() ?? 'easy'
+let _inspectionMode: InspectionMode = parseModeFromUrl() ?? 'subject_review'
 let data: GameData | null = null
 let cardsById = new Map<string, OmrCard>()
 /** unsorted pile (messy) */
@@ -48,9 +53,11 @@ declare global {
       stage: Stage
       seed: number
       difficulty: DifficultyId
+      inspectionMode: InspectionMode
       expectedOrder: string[]
-      cards: Array<{ id: string; injectedErrors: ErrorType[]; disposition: Disposition }>
+      cards: Array<{ id: string; injectedErrors: ErrorType[]; disposition: Disposition; isAbsentBlank: boolean }>
       headcount: { enrolled: number; present: number; absent: number }
+      subject: { code: number; name: string }
       finalScore: GameScore | null
     }
   }
@@ -65,13 +72,16 @@ function syncE2e() {
     stage,
     seed: data.config.seed,
     difficulty: data.config.difficulty,
+    inspectionMode: data.config.inspectionMode,
     expectedOrder: expectedOrder(data.roster, data.cards),
     cards: data.cards.map((c) => ({
       id: c.id,
       injectedErrors: [...c.injectedErrors],
-      disposition: expectedDisposition(c),
+      disposition: expectedDisposition(c, data!.config.inspectionMode),
+      isAbsentBlank: c.isAbsentBlank,
     })),
     headcount: headcountTruth(data.roster),
+    subject: { code: data.config.subjectCode, name: data.config.subjectName },
     finalScore,
   }
 }
@@ -124,9 +134,8 @@ function bootHub() {
   render()
 }
 
-function startRun(diff: DifficultyId, seed?: number) {
-  _difficulty = diff
-  data = generateGame(diff, seed ?? parseSeedFromUrl())
+function resetRunState(seed?: number) {
+  data = generateGame(_difficulty, seed ?? parseSeedFromUrl(), _inspectionMode)
   cardsById = new Map(data.cards.map((c) => [c.id, c]))
   pile = data.cards.map((c) => c.id)
   tray = []
@@ -141,7 +150,34 @@ function startRun(diff: DifficultyId, seed?: number) {
   zoom = 1
   panX = 0
   panY = 0
-  history.replaceState(null, '', `?diff=${_difficulty}&seed=${data.config.seed}`)
+  history.replaceState(
+    null,
+    '',
+    `?diff=${_difficulty}&mode=${_inspectionMode}&seed=${data.config.seed}`,
+  )
+}
+
+function startRun(diff: DifficultyId, seed?: number) {
+  _difficulty = diff
+  // seed reserved for retry; mode screen comes next unless URL already chose mode for e2e
+  const urlMode = parseModeFromUrl()
+  if (urlMode) {
+    _inspectionMode = urlMode
+    resetRunState(seed)
+    stage = 'howto'
+  } else {
+    // stash seed via generate later
+    ;(window as unknown as { __TS_SEED__?: number }).__TS_SEED__ = seed
+    stage = 'mode'
+  }
+  render()
+}
+
+function confirmMode(mode: InspectionMode) {
+  _inspectionMode = mode
+  const seed = (window as unknown as { __TS_SEED__?: number }).__TS_SEED__
+  ;(window as unknown as { __TS_SEED__?: number }).__TS_SEED__ = undefined
+  resetRunState(seed)
   stage = 'howto'
   render()
 }
@@ -162,6 +198,9 @@ function render() {
       break
     case 'difficulty':
       renderDifficulty()
+      break
+    case 'mode':
+      renderMode()
       break
     case 'howto':
       renderHowto()
@@ -202,7 +241,7 @@ function shell(body: string, opts?: { top?: string; desk?: boolean; stageClass?:
 
 function renderHub() {
   const best = loadBest()
-  const played = [best.easy, best.normal, best.hard].filter(Boolean).length
+  const played = [best.easy, best.normal, best.hard, best.multi].filter(Boolean).length
   shell(
     `
 <section class="panel hub-panel" data-stage="hub">
@@ -256,6 +295,7 @@ function renderHub() {
       <span class="hp-chip ${best.easy ? 'done' : ''}">쉬움 ${best.easy ? best.easy.score + '점' : '미클리어'}</span>
       <span class="hp-chip ${best.normal ? 'done' : ''}">보통 ${best.normal ? best.normal.score + '점' : '미클리어'}</span>
       <span class="hp-chip ${best.hard ? 'done' : ''}">어려움 ${best.hard ? best.hard.score + '점' : '미클리어'}</span>
+      <span class="hp-chip ${best.multi ? 'done' : ''}">여러 반 ${best.multi ? best.multi.score + '점' : '미클리어'}</span>
     </div>
   </div>
   <div class="game-grid">
@@ -263,11 +303,12 @@ function renderHub() {
       <span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><rect x="4" y="3" width="24" height="26" rx="2" stroke="currentColor" stroke-width="2"/><circle cx="10" cy="10" r="2" fill="currentColor"/><circle cx="16" cy="10" r="2" fill="currentColor"/><circle cx="22" cy="10" r="2" fill="currentColor"/><circle cx="10" cy="16" r="2" fill="currentColor"/><circle cx="16" cy="16" r="2" fill="currentColor"/><rect x="8" y="22" width="16" height="2" fill="currentColor"/></svg></span>
       <span class="tile-badge">플레이 가능</span>
       <h2>OMR 카드 검사</h2>
-      <p>인원 확인 → 정렬·뒤집기 → 이상 발견 → 교과 확인</p>
+      <p>인원 확인 → 정렬·뒤집기 → 이상 발견 · 시험 직후/교과 확인</p>
       <ul class="best-line">
         <li>쉬움 ${best.easy?.score ?? '—'}점</li>
         <li>보통 ${best.normal?.score ?? '—'}점</li>
         <li>어려움 ${best.hard?.score ?? '—'}점</li>
+        <li>여러 반 ${best.multi?.score ?? '—'}점</li>
       </ul>
     </button>
     <div class="game-tile locked"><span class="tile-icon" aria-hidden="true"><svg class="tile-svg" viewBox="0 0 32 32" fill="none"><rect x="6" y="4" width="20" height="24" rx="2" stroke="currentColor" stroke-width="2"/><path d="M10 12h12M10 17h12M10 22h8" stroke="currentColor" stroke-width="2"/></svg></span><span class="lock">잠김</span><h2>출결 정리</h2><p>전자·종이 출석부 대조</p></div>
@@ -291,9 +332,12 @@ function renderDifficulty() {
   const cards = (Object.keys(DIFFICULTIES) as DifficultyId[])
     .map((id) => {
       const d = DIFFICULTIES[id]
-      const lim = d.timeLimitSec ? `${Math.floor(d.timeLimitSec / 60)}분 제한` : '시간 제한 없음'
-      const ico = id === 'easy' ? '🌱' : id === 'normal' ? '📘' : '🔥'
+      const lim = `시험 직후 최대 ${Math.floor(d.immediateLimitSec / 60)}분`
+      const ico = id === 'easy' ? '🌱' : id === 'normal' ? '📘' : id === 'hard' ? '🔥' : '🏫'
       const bestScore = best[id]?.score
+      const clsNote = d.multiClass
+        ? d.classes!.map((c) => `${c.grade}-${c.classNo}반 ${c.studentCount}명`).join(' · ')
+        : '단일 반'
       return `
 <button type="button" class="diff-card" data-diff="${id}">
   <span class="diff-ico" aria-hidden="true">${ico}</span>
@@ -304,6 +348,7 @@ function renderDifficulty() {
     <li>결시 ${d.absentCount}</li>
   </ul>
   <p class="diff-lim">${lim}</p>
+  <p class="diff-lim">${clsNote}</p>
   <p class="diff-best ${bestScore != null ? 'has' : ''}">최고 ${bestScore ?? '—'}점</p>
 </button>`
     })
@@ -312,7 +357,7 @@ function renderDifficulty() {
     `
 <section class="panel" data-stage="difficulty">
   <h1>OMR 카드 검사 · 난이도</h1>
-  <p class="lead">재적 인원에 따라 책상 위 카드 더미가 달라집니다.</p>
+  <p class="lead">재적·반 구성에 따라 책상 위 카드 더미가 달라집니다. 다음 화면에서 검사 시점을 고릅니다.</p>
   <div class="diff-grid">${cards}</div>
   <div class="actions"><button class="btn ghost" id="btn-back" type="button">허브</button></div>
 </section>`,
@@ -323,36 +368,73 @@ function renderDifficulty() {
   })
 }
 
+function renderMode() {
+  const d = DIFFICULTIES[_difficulty]
+  shell(
+    `
+<section class="panel" data-stage="mode">
+  <h1>검사 시점 · ${d.label}</h1>
+  <p class="lead">시험 직후는 짧은 시간 안에 회수·검사합니다. 교과 확인은 시간 제한이 없습니다.</p>
+  <div class="mode-grid">
+    <button type="button" class="mode-card" data-mode="immediate">
+      <h2>${INSPECTION_MODE_LABELS.immediate}</h2>
+      <p class="mode-lim">최대 ${Math.floor(d.immediateLimitSec / 60)}분 (10분 이내)</p>
+      <p>${INSPECTION_MODE_HINTS.immediate}</p>
+    </button>
+    <button type="button" class="mode-card" data-mode="subject_review">
+      <h2>${INSPECTION_MODE_LABELS.subject_review}</h2>
+      <p class="mode-lim">시간 제한 없음</p>
+      <p>${INSPECTION_MODE_HINTS.subject_review}</p>
+    </button>
+  </div>
+  <div class="actions"><button class="btn ghost" id="btn-back" type="button">난이도</button></div>
+</section>`,
+  )
+  app.querySelector('#btn-back')!.addEventListener('click', () => {
+    stage = 'difficulty'
+    render()
+  })
+  app.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((b) => {
+    b.addEventListener('click', () => confirmMode(b.dataset.mode as InspectionMode))
+  })
+}
+
 function renderHowto() {
   const d = data!
+  const mode = d.config.inspectionMode
+  const lim =
+    d.config.timeLimitSec != null
+      ? `시험 직후 · ${Math.floor(d.config.timeLimitSec / 60)}분 제한`
+      : '교과 확인 · 시간 제한 없음'
   shell(
     `
 <section class="panel howto-panel" data-stage="howto">
   <h1>하는 방법 · ${DIFFICULTIES[d.config.difficulty].label}</h1>
+  <p class="lead">${INSPECTION_MODE_LABELS[mode]} · ${lim} · 과목 <b>${d.config.subjectName}(${String(d.config.subjectCode).padStart(2,'0')})</b></p>
   <ol class="howto-steps">
-    <li><span class="howto-ico" aria-hidden="true">①</span><div><b>응시 인원 확인</b><p>응시자 + 결시자 = 재적. 결시는 빈칸이 아니라 명렬에 «결시»와 사유를 남깁니다.</p></div></li>
-    <li><span class="howto-ico" aria-hidden="true">②</span><div><b>정렬·방향</b><p>책상 위 흐트러진 OMR을 번호순 트레이에 올립니다. 뒷면·위아래(180°) 뒤집힌 장을 바로잡습니다. 단축키 F/R/Enter.</p></div></li>
-    <li><span class="howto-ico" aria-hidden="true">③</span><div><b>이상 발견</b><p>마킹을 대신 고치지 마세요. 시험 중이면 학생에게 수정을 요청하고, 종료 후면 교과 확인으로 넘깁니다. 돋보기로 마킹을 확대하세요.</p></div></li>
-    <li><span class="howto-ico" aria-hidden="true">④</span><div><b>우리 학교 규정</b><p>수정테이프 허용 여부는 학교·시험마다 다릅니다. 이 데모는 <em>우리 학교 규정 기준</em>으로 «들뜸·덧칠»을 이상으로 봅니다.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">①</span><div><b>응시 인원 확인</b><p>응시자 + 결시자 = 재적. 결시생은 빈 답안지를 꺼내 결시·사유를 명렬과 대조합니다.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">②</span><div><b>정렬·방향</b><p>${d.config.multiClass ? '반별로 묶고 각 반 안에서는 번호(가나다)순' : '번호순'}으로 트레이에 올립니다. 뒷면·위아래(180°)를 바로잡습니다. F/R/Enter.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">③</span><div><b>이상 발견</b><p>${INSPECTION_MODE_HINTS[mode]} 카드의 문제 부위를 클릭하면 이상이 선택됩니다. 교사가 답안을 고치지 않습니다.</p></div></li>
+    <li><span class="howto-ico" aria-hidden="true">④</span><div><b>조치</b><p>기재 오류(학번·이름·과목)만 «학생 호출하여 기재 사항 확인». 답안 마킹 이상은 «학생 호출 없이 오답 처리». 판독이 어려우면 교과 확인.</p></div></li>
   </ol>
   <aside class="field-rules" aria-label="현장 규칙">
     <b>현장 규칙 요약</b>
     <ul>
-      <li><strong>인원</strong> 응시 + 결시 = 재적</li>
-      <li><strong>조치</strong> 정상 · 학생 수정 요청 · 교과 확인</li>
-      <li><strong>마킹</strong> 교사가 대신 고치지 않음</li>
+      <li><strong>인원</strong> 응시 + 결시 = 재적 · 결시 빈 답안지</li>
+      <li><strong>조치</strong> 정상 · 기재 확인 호출 · 오답 처리 · 교과 확인</li>
+      <li><strong>마킹</strong> 교사가 대신 고치지 않음 · 답안 수정 호출 없음</li>
     </ul>
   </aside>
-  <p class="howto-seed">시드 <b>${d.config.seed}</b> · 재적 <b>${d.config.studentCount}</b> · 응시 <b>${d.cards.length}</b></p>
+  <p class="howto-seed">시드 <b>${d.config.seed}</b> · 재적 <b>${d.config.studentCount}</b> · 카드 <b>${d.cards.length}</b>${d.config.multiClass ? ' · 여러 반' : ''}</p>
   <div class="actions">
     <button class="btn primary" id="btn-go" type="button">인원 확인 시작</button>
-    <button class="btn ghost" id="btn-back" type="button">난이도</button>
+    <button class="btn ghost" id="btn-back" type="button">검사 시점</button>
   </div>
 </section>`,
   )
   app.querySelector('#btn-go')!.addEventListener('click', () => go('headcount'))
   app.querySelector('#btn-back')!.addEventListener('click', () => {
-    stage = 'difficulty'
+    stage = 'mode'
     render()
   })
 }
@@ -365,9 +447,9 @@ function renderHeadcount() {
     `
 <section class="panel headcount-panel" data-stage="headcount">
   <h1>응시 인원 확인</h1>
-  <p class="lead">명렬표를 보고 <b>응시자 + 결시자 = 재적</b>인지 확인하세요. 결시생 카드는 더미에 없습니다.</p>
+  <p class="lead">명렬표를 보고 <b>응시자 + 결시자 = 재적</b>인지 확인하세요. 결시생은 <b>빈 답안지</b>를 꺼내 결시·사유를 대조합니다.</p>
   <div class="hc-layout">
-    ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
+    ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo, { multiClass: d.config.multiClass, subjectLabel: `${d.config.subjectName}(${String(d.config.subjectCode).padStart(2,'0')})` })}
     <form id="hc-form" class="hc-form">
       <label>재적 <input name="enrolled" type="number" min="0" required /></label>
       <label>응시자 <input name="present" type="number" min="0" required /></label>
@@ -417,7 +499,11 @@ function showToast(msg: string) {
 
 function renderSorting() {
   const d = data!
-  const present = d.roster.filter((s) => !s.absent)
+  const present = [...d.roster].sort((a, b) => {
+    if (a.grade !== b.grade) return a.grade - b.grade
+    if (a.classNo !== b.classNo) return a.classNo - b.classNo
+    return a.number - b.number
+  })
   const expected = expectedOrder(d.roster, d.cards)
   const bad = [...pile, ...tray].filter((id) => {
     const c = cardsById.get(id)!
@@ -452,9 +538,9 @@ function renderSorting() {
       const expId = expected[i]
       if (!id) {
         return `
-<div class="tray-slot empty-slot" data-slot="${i}">
-  <span class="slot-label">슬롯 ${i + 1} · 예상 ${String(stu.number).padStart(2, '0')}</span>
-  <div class="slot-ghost">${String(stu.number).padStart(2, '0')} ${stu.name}</div>
+<div class="tray-slot empty-slot" data-slot="${i}" data-class="${stu.grade}-${stu.classNo}">
+  <span class="slot-label">슬롯 ${i + 1} · ${stu.grade}-${stu.classNo}반 ${String(stu.number).padStart(2, '0')}${stu.absent ? ' · 결시' : ''}</span>
+  <div class="slot-ghost">${stu.grade}-${stu.classNo} ${String(stu.number).padStart(2, '0')} ${stu.name}${stu.absent ? ' (결시)' : ''}</div>
 </div>`
       }
       const card = cardsById.get(id)!
@@ -463,7 +549,7 @@ function renderSorting() {
       const cls = orderOk && !card.faceDown && !card.upsideDown ? 'slot-ok' : orderOk ? 'slot-warn' : 'slot-bad'
       return `
 <div class="tray-slot ${cls}" data-slot="${i}" data-id="${id}">
-  <span class="slot-label">슬롯 ${i + 1} · 예상 ${String(stu.number).padStart(2, '0')}
+  <span class="slot-label">슬롯 ${i + 1} · ${stu.grade}-${stu.classNo}반 ${String(stu.number).padStart(2, '0')}${stu.absent ? ' · 결시' : ''}
     <em>${ok ? '✓' : orderOk ? '방향!' : '순서✗'}</em>
   </span>
   <div class="desk-card tray-card tray-fan" data-id="${id}" data-tray-index="${i}" draggable="true"
@@ -507,8 +593,8 @@ function renderSorting() {
       </svg>
     </div>
     <aside class="desk-roster paper-object">
-      ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo)}
-      <p class="side-note">결시 행은 카드가 없습니다. 응시 카드만 번호순으로.</p>
+      ${renderRosterSheet(d.roster, d.config.grade, d.config.classNo, { multiClass: d.config.multiClass, subjectLabel: `${d.config.subjectName}(${String(d.config.subjectCode).padStart(2,'0')})` })}
+      <p class="side-note">${d.config.multiClass ? '반 → 번호(가나다)순. ' : ''}결시생은 빈 답안지를 같은 슬롯에 둡니다.</p>
       <aside class="desk-sticky" aria-hidden="true">
         <b>메모</b>
         <p>뒷면·위아래 먼저 바로잡고 트레이로.</p>
@@ -529,9 +615,9 @@ function renderSorting() {
       </div>
       <div class="tray-zone ${pile.length ? '' : 'is-expanded'}" id="tray-zone">
         <header class="zone-head">
-          <h2>정렬 트레이 <small>번호 오름차순 · 초록=맞음 · F/R/Enter</small></h2>
+          <h2>정렬 트레이 <small>${d.config.multiClass ? '반→번호순' : '번호순'} · 초록=맞음 · F/R/Enter</small></h2>
           <div class="pile-actions toolbar">
-            <button class="btn tiny" id="btn-autosort" type="button">수기번호순</button>
+            <button class="btn tiny" id="btn-autosort" type="button">${d.config.multiClass ? '반·번호순' : '수기번호순'}</button>
             <button class="btn tiny primary" id="btn-done-sort" type="button">정렬 완료 · 검사</button>
           </div>
         </header>
@@ -555,9 +641,13 @@ function bindSorting() {
       c.faceDown = false
       c.upsideDown = false
     }
-    tray = all.sort(
-      (a, b) => cardsById.get(a)!.handwrittenNumber - cardsById.get(b)!.handwrittenNumber,
-    )
+    tray = all.sort((a, b) => {
+      const ca = cardsById.get(a)!
+      const cb = cardsById.get(b)!
+      if (ca.handwrittenGrade !== cb.handwrittenGrade) return ca.handwrittenGrade - cb.handwrittenGrade
+      if (ca.handwrittenClass !== cb.handwrittenClass) return ca.handwrittenClass - cb.handwrittenClass
+      return ca.handwrittenNumber - cb.handwrittenNumber
+    })
     pile = []
     selectedPileId = null
     renderSorting()
@@ -709,8 +799,11 @@ function renderInspection() {
   const student = studentForCard(d.roster, card)
   const j = judgments.get(card.id) ?? { selected: [], disposition: 'ok' as Disposition }
   const selected = new Set(j.selected)
+  const lim = d.config.timeLimitSec
+  const timeLabel =
+    lim != null ? `${fmtTime(elapsed())} / ${fmtTime(lim)}` : fmtTime(elapsed())
 
-  const top = `<div class="progress"><span class="pill">검사</span><span class="timer" id="timer">${fmtTime(elapsed())}</span><span class="hint-pill">${inspectIndex + 1}/${order.length}</span></div>`
+  const top = `<div class="progress"><span class="pill">검사 · ${INSPECTION_MODE_LABELS[d.config.inspectionMode]}</span><span class="timer" id="timer">${timeLabel}</span><span class="hint-pill">${inspectIndex + 1}/${order.length} · ${d.config.subjectName}</span></div>`
 
   const checks = JUDGABLE_ERRORS.map((e) => {
     const on = selected.has(e)
@@ -720,7 +813,7 @@ function renderInspection() {
     </label>`
   }).join('')
 
-  const dispositions = (['ok', 'ask_student', 'to_subject'] as Disposition[])
+  const dispositions = (['ok', 'call_identity', 'score_wrong', 'to_subject'] as Disposition[])
     .map(
       (disp) => `
 <label class="disp disp-${disp} ${j.disposition === disp ? 'on' : ''}" data-disp="${disp}">
@@ -730,6 +823,11 @@ function renderInspection() {
     )
     .join('')
 
+  const modeHelp =
+    d.config.inspectionMode === 'immediate'
+      ? '인적사항 기재·마킹을 먼저 확인합니다. 답안 마킹은 수정시키지 않습니다. 오답으로 판정한 답안은 학생을 부르지 않고 그대로 채점합니다.'
+      : '교과 교사가 기재 오류 여부와 답안 인식을 확인하고, 필요하면 학교 성적처리 절차로 넘깁니다.'
+
   shell(
     `
 <section class="panel inspection-panel" data-stage="inspection">
@@ -737,17 +835,20 @@ function renderInspection() {
     <aside class="inspect-roster">
       <h2>명렬 한 줄</h2>
       <dl class="student-card">
-        <div><dt>번호</dt><dd>${String(student.number).padStart(2, '0')}</dd></div>
-        <div><dt>성명</dt><dd>${student.name}</dd></div>
         <div><dt>학년·반·번호</dt><dd>${student.grade}-${student.classNo}-${String(student.number).padStart(2,'0')}</dd></div>
+        <div><dt>성명</dt><dd>${student.name}</dd></div>
         <div><dt>수험번호</dt><dd>${student.examId}</dd></div>
+        <div><dt>과목</dt><dd>${d.config.subjectName} (${String(d.config.subjectCode).padStart(2,'0')})</dd></div>
+        <div><dt>응시</dt><dd>${student.absent ? `결시 · ${student.absentNote ?? ''}` : '응시'}</dd></div>
       </dl>
-      <p class="warn-note">⚠ 교사가 마킹을 대신 고치지 않습니다.</p>
+      <p class="warn-note">⚠ 교사가 답안 마킹을 대신 고치지 않습니다.<br/>학생 호출 없이 오답 처리 · 기재 오류만 호출</p>
+      <p class="side-note mode-help">${modeHelp}</p>
       <div class="dot-nav" id="dot-nav">
         ${order
           .map((id, i) => {
             const done = judgments.has(id)
-            return `<button type="button" class="dot ${i === inspectIndex ? 'current' : ''} ${done ? 'done' : ''}" data-i="${i}" aria-label="${i + 1}번">${i + 1}</button>`
+            const c = cardsById.get(id)!
+            return `<button type="button" class="dot ${i === inspectIndex ? 'current' : ''} ${done ? 'done' : ''} ${c.isAbsentBlank ? 'abs' : ''}" data-i="${i}" aria-label="${i + 1}번">${i + 1}</button>`
           })
           .join('')}
       </div>
@@ -755,20 +856,19 @@ function renderInspection() {
     <div class="inspect-card-pane">
       <div class="zoom-toolbar">
         <button type="button" class="btn tiny" id="z-out">−</button>
-        <button type="button" class="btn tiny" id="z-reset">돋보기 리셋</button>
+        <button type="button" class="btn tiny" id="z-reset">배율 리셋</button>
         <button type="button" class="btn tiny" id="z-in">+</button>
+        <span class="side-note">문제 부위를 클릭하면 이상이 선택됩니다</span>
       </div>
       <div class="zoom-viewport" id="zoom-viewport">
         <div class="zoom-canvas" id="zoom-canvas" style="transform:translate(${panX}px,${panY}px) scale(${zoom})">
-          ${renderOmrFront(card, { student, showRosterHint: true })}
+          ${renderOmrFront(card, { student, showRosterHint: false })}
         </div>
-        <div class="magnifier" id="magnifier" hidden></div>
       </div>
-      <p class="side-note mag-hint">마우스 위에 돋보기 렌즈 · 드래그로 이동 · +/− 로 확대</p>
     </div>
     <aside class="inspect-judge inspect-actions">
       <h2>발견한 이상</h2>
-      <form id="judge-form" class="judge-form">${checks}</form>
+      <form id="judge-form" class="judge-form judge-2col">${checks}</form>
       <h2>조치</h2>
       <form id="disp-form" class="disp-form">${dispositions}</form>
       <div class="actions inspect-actions">
@@ -807,20 +907,33 @@ function bindInspection(card: OmrCard, order: string[]) {
     judgments.set(card.id, { selected: sel, disposition: disp })
   }
 
+  const toggleError = (val: ErrorType, force?: boolean) => {
+    const cur = judgments.get(card.id) ?? { selected: [] as ErrorType[], disposition: 'ok' as Disposition }
+    let set = new Set(cur.selected)
+    const on = force ?? !set.has(val)
+    if (on) {
+      if (val === 'ok') set = new Set(['ok'])
+      else {
+        set.delete('ok')
+        set.add(val)
+      }
+    } else set.delete(val)
+    // suggest disposition
+    let disp = cur.disposition
+    const errs = [...set].filter((e) => e !== 'ok')
+    if (set.has('ok') && set.size === 1) disp = 'ok'
+    else if (errs.some((e) => e === 'id_mark' || e === 'name_mismatch' || e === 'missing_subject'))
+      disp = 'call_identity'
+    else if (errs.some((e) => e === 'duplicate_mark' || e === 'missing_mark' || e === 'incomplete_mark'))
+      disp = 'score_wrong'
+    else disp = 'to_subject'
+    saveSel([...set], disp)
+    renderInspection()
+  }
+
   app.querySelectorAll<HTMLInputElement>('#judge-form input').forEach((inp) => {
     inp.addEventListener('change', () => {
-      const cur = judgments.get(card.id) ?? { selected: [] as ErrorType[], disposition: 'ok' as Disposition }
-      let set = new Set(cur.selected)
-      const val = inp.value as ErrorType
-      if (inp.checked) {
-        if (val === 'ok') set = new Set(['ok'])
-        else {
-          set.delete('ok')
-          set.add(val)
-        }
-      } else set.delete(val)
-      saveSel([...set], cur.disposition)
-      renderInspection()
+      toggleError(inp.value as ErrorType, inp.checked)
     })
   })
 
@@ -829,6 +942,26 @@ function bindInspection(card: OmrCard, order: string[]) {
       const cur = judgments.get(card.id) ?? { selected: [] as ErrorType[], disposition: 'ok' as Disposition }
       saveSel(cur.selected, inp.value as Disposition)
       renderInspection()
+    })
+  })
+
+  // Direct click on erroneous OMR regions
+  const canvas = app.querySelector<HTMLElement>('#zoom-canvas')
+  canvas?.querySelectorAll<HTMLElement>('[data-region]').forEach((el) => {
+    el.style.cursor = 'pointer'
+    let sx = 0
+    let sy = 0
+    el.addEventListener('pointerdown', (e) => {
+      sx = e.clientX
+      sy = e.clientY
+      e.stopPropagation()
+    })
+    el.addEventListener('pointerup', (e) => {
+      if (Math.hypot(e.clientX - sx, e.clientY - sy) > 6) return
+      const region = el.getAttribute('data-region') as ErrorType | null
+      if (!region) return
+      e.stopPropagation()
+      toggleError(region)
     })
   })
 
@@ -845,10 +978,6 @@ function bindInspection(card: OmrCard, order: string[]) {
     if (!cur || cur.selected.length === 0) {
       showToast('발견한 이상을 고르세요. 없으면 «이상 없음».')
       return
-    }
-    // auto-suggest disposition: if ok -> ok, else to_subject (post-exam)
-    if (cur.selected.includes('ok') && cur.selected.length === 1) {
-      /* keep */
     }
     if (inspectIndex < order.length - 1) {
       inspectIndex++
@@ -899,6 +1028,7 @@ function bindInspection(card: OmrCard, order: string[]) {
   let lx = 0
   let ly = 0
   vp?.addEventListener('pointerdown', (e) => {
+    if ((e.target as HTMLElement).closest('[data-region]')) return
     dragging = true
     lx = e.clientX
     ly = e.clientY
@@ -910,45 +1040,12 @@ function bindInspection(card: OmrCard, order: string[]) {
     panY += e.clientY - ly
     lx = e.clientX
     ly = e.clientY
-    const canvas = app.querySelector<HTMLElement>('#zoom-canvas')
-    if (canvas) canvas.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`
+    const cnv = app.querySelector<HTMLElement>('#zoom-canvas')
+    if (cnv) cnv.style.transform = `translate(${panX}px,${panY}px) scale(${zoom})`
   })
   vp?.addEventListener('pointerup', () => {
     dragging = false
   })
-
-  const mag = app.querySelector<HTMLElement>('#magnifier')
-  const canvas = app.querySelector<HTMLElement>('#zoom-canvas')
-  if (vp && mag && canvas) {
-    const syncMag = (e: PointerEvent) => {
-      if (dragging) {
-        mag.hidden = true
-        return
-      }
-      const rect = vp.getBoundingClientRect()
-      const x = e.clientX - rect.left
-      const y = e.clientY - rect.top
-      const size = 180
-      mag.hidden = false
-      mag.style.width = `${size}px`
-      mag.style.height = `${size}px`
-      mag.style.left = `${Math.max(4, Math.min(rect.width - size - 4, x - size / 2))}px`
-      mag.style.top = `${Math.max(4, Math.min(rect.height - size - 4, y - size / 2))}px`
-      // Content coords under cursor (canvas transform: translate(pan) scale(zoom))
-      const cx = (x - panX) / Math.max(0.01, zoom)
-      const cy = (y - panY) / Math.max(0.01, zoom)
-      const S = 2.6
-      const ox = size / 2 - cx * S
-      const oy = size / 2 - cy * S
-      mag.innerHTML = `<div class="mag-inner" style="transform:translate(${ox}px,${oy}px) scale(${S}); transform-origin:0 0">${canvas.innerHTML}</div>`
-    }
-    vp.addEventListener('pointermove', (e) => {
-      if (!dragging) syncMag(e)
-    })
-    vp.addEventListener('pointerleave', () => {
-      mag.hidden = true
-    })
-  }
 }
 
 function finishGame() {
@@ -962,7 +1059,7 @@ function finishGame() {
     const j = judgments.get(id) ?? { selected: ['ok'] as ErrorType[], disposition: 'ok' as Disposition }
     return { cardId: id, selected: j.selected, disposition: j.disposition }
   })
-  const insp = scoreInspection(ordered, jList)
+  const insp = scoreInspection(ordered, jList, d.config.inspectionMode)
   finalScore = computeScore({
     headcountOk,
     sort: sortResult,
@@ -970,6 +1067,7 @@ function finishGame() {
     timeSeconds: elapsed(),
     cardCount: order.length,
     timedOut,
+    inspectionMode: d.config.inspectionMode,
   })
   saveBest(d.config.difficulty, finalScore.total)
   go('results')
@@ -981,14 +1079,25 @@ function renderResults() {
   const ratio = s.maxTotal ? s.total / s.maxTotal : 0
   const grade = ratio >= 0.95 ? 'A+' : ratio >= 0.85 ? 'A' : ratio >= 0.7 ? 'B' : ratio >= 0.55 ? 'C' : 'D'
 
-  const rows = s.inspection
-    .map((cs) => {
-      const card = cardsById.get(cs.cardId)!
-      const st = studentForCard(d.roster, card)
-      const hl = [...cs.missed, ...cs.hit.filter((e) => e !== 'ok')]
-      return `
-<article class="result-card ${cs.perfect ? 'ok' : 'ng'}">
-  <header><b>${String(st.number).padStart(2, '0')} ${st.name}</b>
+  const grouped = new Map<string, typeof s.inspection>()
+  for (const cs of s.inspection) {
+    const card = cardsById.get(cs.cardId)!
+    const st = studentForCard(d.roster, card)
+    const key = `${st.grade}-${st.classNo}`
+    if (!grouped.has(key)) grouped.set(key, [])
+    grouped.get(key)!.push(cs)
+  }
+  const rows = [...grouped.entries()]
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([key, list]) => {
+      const articles = list
+        .map((cs) => {
+          const card = cardsById.get(cs.cardId)!
+          const st = studentForCard(d.roster, card)
+          const hl = [...cs.missed, ...cs.hit.filter((e) => e !== 'ok')]
+          return `
+<article class="result-card ${cs.perfect ? 'ok' : 'ng'} ${card.isAbsentBlank ? 'abs' : ''}">
+  <header><b>${st.grade}-${st.classNo} ${String(st.number).padStart(2, '0')} ${st.name}${card.isAbsentBlank ? ' · 결시 빈장' : ''}</b>
     <span class="tag ${cs.perfect ? 'good' : 'bad'}">${cs.perfect ? '정확' : '미흡'}</span>
   </header>
   <div class="result-mini">${renderOmrFront(card, { student: st, highlight: hl, compact: true })}</div>
@@ -996,8 +1105,13 @@ function renderResults() {
   ${cs.missed.length ? `<div class="explain miss">놓침: ${cs.missed.map((e) => `${ERROR_LABELS[e]} — ${ERROR_HINTS[e]}`).join(' / ')}</div>` : ''}
   ${cs.falsePositive.length ? `<div class="explain fp">잘못 선택: ${cs.falsePositive.map((e) => ERROR_LABELS[e]).join(', ')}</div>` : ''}
   <div class="explain ${cs.dispositionOk ? 'hit' : 'miss'}">조치: ${DISPOSITION_LABELS[cs.disposition]}
-    ${cs.dispositionOk ? '' : `(정답: ${DISPOSITION_LABELS[cs.expectedDisposition]})`}</div>
+    ${cs.dispositionOk ? '' : `(정답: ${DISPOSITION_LABELS[cs.expectedDisposition]})`}
+    ${cs.disposition === 'score_wrong' ? ' · <em>학생 호출 없이 오답 처리</em>' : ''}
+  </div>
 </article>`
+        })
+        .join('')
+      return `<div class="result-class-group"><h3>${key.replace('-', '학년 ')}반</h3>${articles}</div>`
     })
     .join('')
 
@@ -1005,7 +1119,7 @@ function renderResults() {
     `
 <section class="panel results-panel" data-stage="results">
   <div class="score-hero">
-    <p class="eyebrow">결과 · ${DIFFICULTIES[d.config.difficulty].label}${s.timedOut ? ' · 시간초과' : ''}</p>
+    <p class="eyebrow">결과 · ${DIFFICULTIES[d.config.difficulty].label} · ${INSPECTION_MODE_LABELS[s.inspectionMode]}${s.timedOut ? ' · 시간초과' : ''} · ${d.config.subjectName}</p>
     <div class="grade-badge" data-grade="${grade}">${grade}</div>
     <h1><span class="score-num">${s.total}</span> <small>/ ${s.maxTotal}</small></h1>
     <div class="score-bar" aria-hidden="true"><i style="width:${Math.round(ratio*100)}%"></i></div>
@@ -1036,8 +1150,15 @@ function renderResults() {
   </div>
 </section>`,
   )
-  app.querySelector('#btn-retry')!.addEventListener('click', () => startRun(d.config.difficulty, d.config.seed))
-  app.querySelector('#btn-new')!.addEventListener('click', () => startRun(d.config.difficulty))
+  app.querySelector('#btn-retry')!.addEventListener('click', () => {
+    _inspectionMode = d.config.inspectionMode
+    history.replaceState(null, '', `?diff=${d.config.difficulty}&mode=${d.config.inspectionMode}&seed=${d.config.seed}`)
+    startRun(d.config.difficulty, d.config.seed)
+  })
+  app.querySelector('#btn-new')!.addEventListener('click', () => {
+    _inspectionMode = d.config.inspectionMode
+    startRun(d.config.difficulty)
+  })
   app.querySelector('#btn-hub2')!.addEventListener('click', bootHub)
 }
 
