@@ -55,7 +55,16 @@ declare global {
       difficulty: DifficultyId
       inspectionMode: InspectionMode
       expectedOrder: string[]
-      cards: Array<{ id: string; injectedErrors: ErrorType[]; disposition: Disposition; isAbsentBlank: boolean }>
+      cards: Array<{
+        id: string
+        injectedErrors: ErrorType[]
+        disposition: Disposition
+        isAbsentBlank: boolean
+        damaged?: boolean
+        damageKind?: string
+        proctorSigned?: boolean
+        proctorStampMisplaced?: boolean
+      }>
       headcount: { enrolled: number; present: number; absent: number }
       subject: { code: number; name: string }
       finalScore: GameScore | null
@@ -79,6 +88,10 @@ function syncE2e() {
       injectedErrors: [...c.injectedErrors],
       disposition: expectedDisposition(c, data!.config.inspectionMode),
       isAbsentBlank: c.isAbsentBlank,
+      damaged: c.damaged,
+      damageKind: c.damageKind,
+      proctorSigned: c.proctorSigned,
+      proctorStampMisplaced: c.proctorStampMisplaced,
     })),
     headcount: headcountTruth(data.roster),
     subject: { code: data.config.subjectCode, name: data.config.subjectName },

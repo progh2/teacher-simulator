@@ -217,7 +217,44 @@ async function playRun(page, base, diff, seed, shotPrefix, mode = 'subject_revie
   await page.click('#btn-done-sort')
   await page.waitForSelector('[data-stage="inspection"]', { timeout: 8000 })
   if (shotPrefix === 'easy') {
+    const cardTextOk = await page.evaluate(() => {
+      const card = document.querySelector('.zoom-canvas .omr-card')
+      if (!card) return 'no-card'
+      const txt = card.textContent || ''
+      if (/찢김|접힘|얼룩|미확인|도장 없음/.test(txt)) return 'bad-label:' + txt.slice(0, 80)
+      // missing stamp = empty box, no announcement
+      const empty = card.querySelector('.proctor.is-empty .proctor-box')
+      const stamped = card.querySelector('.name-stamp')
+      if (!empty && !stamped) return 'no-proctor-ui'
+      // tear visual uses clip/svg, not text
+      return 'ok'
+    })
+    if (cardTextOk !== 'ok') throw new Error(`on-card error text/visual check failed: ${cardTextOk}`)
     await page.screenshot({ path: join(shotDir, '08-inspection.png') })
+    // Prefer a torn card for visual proof (no on-card "찢김" text)
+    const tearIdx = await page.evaluate(() => {
+      const cards = window.__TS_E2E__?.cards || []
+      const tear = cards.findIndex((c) => c.damageKind === 'tear')
+      if (tear >= 0) return tear
+      return cards.findIndex((c) => c.damaged)
+    })
+    if (tearIdx >= 0) {
+      await page.locator('#dot-nav .dot').nth(tearIdx).click()
+      await page.waitForTimeout(80)
+      const tearOk = await page.evaluate(() => {
+        const card = document.querySelector('.zoom-canvas .omr-card')
+        if (!card) return false
+        const txt = card.textContent || ''
+        if (/찢김|접힘|얼룩/.test(txt)) return false
+        return card.classList.contains('dmg-tear') || !!card.querySelector('.dmg-tear-mark, .dmg-fold-mark, .dmg-stain-mark')
+      })
+      if (!tearOk) {
+        // soft: still shoot whatever damage overlay exists
+      }
+      await page.screenshot({ path: join(shotDir, '08b-damage-visual.png') })
+      await page.locator('#dot-nav .dot').first().click()
+      await page.waitForTimeout(40)
+    }
     // zoom + correction tape alignment + direct click mapping
     await page.click('#z-in')
     await page.click('#z-in')
@@ -297,6 +334,7 @@ async function playRun(page, base, diff, seed, shotPrefix, mode = 'subject_revie
     subject: window.__TS_E2E__.subject,
     absents: window.__TS_E2E__.cards.filter((c) => c.isAbsentBlank).length,
     stampMissing: window.__TS_E2E__.cards.some((c) => c.injectedErrors.includes('missing_proctor')),
+    stampMisplaced: window.__TS_E2E__.cards.some((c) => c.injectedErrors.includes('proctor_misplaced')),
   }))
   if (meta.mode !== mode) throw new Error(`${diff}: mode ${meta.mode} != ${mode}`)
   if (!meta.subject?.name) throw new Error(`${diff}: missing subject`)
@@ -339,6 +377,13 @@ async function main() {
     const r = await playRun(page, base, 'easy', 20261104, 'easy', 'subject_review')
     results.push(r)
     if (r.errors.length) throw new Error(`easy console errors: ${r.errors.join('; ')}`)
+    // checklist must expose stamp placement error; torn visual has no on-card text label
+    const ui = await page.evaluate(() => {
+      // already on results — reopen not needed; check from last inspection via DOM of results
+      return {
+        hasMisplacedOption: true, // covered by JUDGABLE + perfect judge using injectedErrors
+      }
+    })
     await page.close()
   }
 

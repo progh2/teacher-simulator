@@ -27,13 +27,21 @@ const ERROR_POOL: ErrorType[] = [
   'missing_subject',
   'subject_name_mismatch',
   'missing_proctor',
+  'proctor_misplaced',
   'correction_tape',
   'wrong_pen',
   'damaged',
 ]
 
+/** 가상 감독 교사 도장용 2글자 (실명 아님) */
+const PROCTOR_STAMP_NAMES = [
+  '김민', '이서', '박준', '최윤', '정하', '강유', '조은', '윤재',
+  '장도', '임수', '한예', '오현', '서진', '신아', '권태', '황린',
+] as const
+
 const MUST_COVER: ErrorType[] = [
   'missing_proctor',
+  'proctor_misplaced',
   'damaged',
   'correction_tape',
   'incomplete_mark',
@@ -42,6 +50,12 @@ const MUST_COVER: ErrorType[] = [
   'duplicate_mark',
   'subject_name_mismatch',
 ]
+
+
+function pickProctorStamp(rng: () => number, cardIndex: number): string {
+  const i = (Math.floor(rng() * PROCTOR_STAMP_NAMES.length) + cardIndex) % PROCTOR_STAMP_NAMES.length
+  return PROCTOR_STAMP_NAMES[i]!
+}
 
 function pad2(n: number): string {
   return String(n).padStart(2, '0')
@@ -134,6 +148,20 @@ function applyError(
     }
     case 'missing_proctor':
       card.proctorSigned = false
+      card.proctorStampName = null
+      card.proctorStampMisplaced = false
+      card.injectedErrors = card.injectedErrors.filter((e) => e !== 'proctor_misplaced')
+      break
+    case 'proctor_misplaced':
+      if (card.injectedErrors.includes('missing_proctor') || !card.proctorSigned) {
+        card.injectedErrors = card.injectedErrors.filter((e) => e !== 'proctor_misplaced')
+        return
+      }
+      card.proctorSigned = true
+      card.proctorStampMisplaced = true
+      if (!card.proctorStampName) {
+        card.proctorStampName = PROCTOR_STAMP_NAMES[Math.floor(rng() * PROCTOR_STAMP_NAMES.length)]!
+      }
       break
     case 'correction_tape': {
       card.hasCorrectionTape = true
@@ -205,6 +233,8 @@ function makePresentCard(
     handwrittenSubject: config.subjectName,
     answers: correctAnswers(rng, config.questionCount),
     proctorSigned: true,
+    proctorStampName: pickProctorStamp(rng, st.number),
+    proctorStampMisplaced: false,
     hasCorrectionTape: false,
     correctionTapeBad: false,
     correctionTapeQi: null,
@@ -257,6 +287,8 @@ function makeAbsentBlank(
       style: 'normal' as MarkStyle,
     })),
     proctorSigned: true,
+    proctorStampName: pickProctorStamp(rng, st.number + 17),
+    proctorStampMisplaced: false,
     hasCorrectionTape: false,
     correctionTapeBad: false,
     correctionTapeQi: null,
@@ -468,7 +500,21 @@ export function headcountTruth(roster: Student[]) {
 /** 결정적 테스트용: 주어진 시드에서 missing_proctor가 생기는지 */
 export function seedHasMissingProctor(difficulty: DifficultyId, seed: number): boolean {
   const data = generateGame(difficulty, seed, 'subject_review')
-  return data.cards.some((c) => c.injectedErrors.includes('missing_proctor') && !c.proctorSigned)
+  return data.cards.some(
+    (c) => c.injectedErrors.includes('missing_proctor') && !c.proctorSigned && !c.proctorStampName,
+  )
+}
+
+/** 결정적 테스트용: 도장 걸침/밖 오류 */
+export function seedHasMisplacedProctor(difficulty: DifficultyId, seed: number): boolean {
+  const data = generateGame(difficulty, seed, 'subject_review')
+  return data.cards.some(
+    (c) =>
+      c.injectedErrors.includes('proctor_misplaced') &&
+      c.proctorSigned &&
+      c.proctorStampMisplaced &&
+      !!c.proctorStampName,
+  )
 }
 
 export function assertRosterNameOrder(roster: Student[]): boolean {

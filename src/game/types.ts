@@ -7,7 +7,8 @@ export type ErrorType =
   | 'incomplete_mark' // 불완전 표기(흐림·한 줄·부분)
   | 'missing_subject' // 과목코드 누락
   | 'subject_name_mismatch' // 수기 과목명 불일치
-  | 'missing_proctor' // 감독관 확인란
+  | 'missing_proctor' // 감독관 도장 누락(빈 확인란)
+  | 'proctor_misplaced' // 감독관 도장이 확인란 밖·걸침
   | 'correction_tape' // 수정테이프 (우리 학교 규정 기준)
   | 'wrong_pen'
   | 'damaged' // 접힘·얼룩·찢김
@@ -22,7 +23,8 @@ export const ERROR_LABELS: Record<ErrorType, string> = {
   incomplete_mark: '불완전 표기',
   missing_subject: '과목코드 누락',
   subject_name_mismatch: '과목명 불일치',
-  missing_proctor: '감독관 확인란 누락',
+  missing_proctor: '감독관 도장 누락',
+  proctor_misplaced: '감독관 도장 위치 이상',
   correction_tape: '수정테이프 이상 (우리 학교 규정)',
   wrong_pen: '컴퓨터용 사인펜 아님',
   damaged: '접힘·얼룩·찢김',
@@ -38,7 +40,8 @@ export const ERROR_HINTS: Record<ErrorType, string> = {
   incomplete_mark: '흐리거나 한 줄(ㅡ)·부분만 그어 인식이 어렵습니다. (인식 가능하면 이상 없음)',
   missing_subject: '과목코드가 비어 있거나 시험 과목과 다릅니다.',
   subject_name_mismatch: '수기 과목명이 이번 시험 과목명과 다릅니다.',
-  missing_proctor: '감독관 확인란에 서명·도장이 없습니다.',
+  missing_proctor: '감독관 확인란이 비어 있습니다(도장 없음).',
+  proctor_misplaced: '감독관 도장이 확인란 테두리를 걸치거나 밖에 찍혀 있습니다.',
   correction_tape: '수정테이프가 들뜨거나 위에 다시 칠해져 있습니다. ※ 처리는 우리 학교 규정 기준.',
   wrong_pen: '컴퓨터용 수성 사인펜이 아닌 필기구 흔적입니다.',
   damaged: '카드가 접히거나 얼룩·찢김이 있습니다.',
@@ -55,6 +58,7 @@ export const JUDGABLE_ERRORS: ErrorType[] = [
   'missing_subject',
   'subject_name_mismatch',
   'missing_proctor',
+  'proctor_misplaced',
   'correction_tape',
   'wrong_pen',
   'damaged',
@@ -78,6 +82,7 @@ export const SUBJECT_REVIEW_ERRORS: ErrorType[] = [
   'correction_tape',
   'damaged',
   'missing_proctor',
+  'proctor_misplaced',
   'wrong_pen',
   'absent_mismatch',
 ]
@@ -247,6 +252,10 @@ export interface OmrCard {
   handwrittenSubject: string
   answers: AnswerMark[]
   proctorSigned: boolean
+  /** 가상 감독 교사 성명(도장용 2글자). 누락이면 null */
+  proctorStampName: string | null
+  /** 도장이 확인란을 벗어나거나 걸침 */
+  proctorStampMisplaced: boolean
   hasCorrectionTape: boolean
   correctionTapeBad: boolean
   /** 수정테이프가 덮인 문항(0-based). 확대 시에도 카드 좌표에 고정 */

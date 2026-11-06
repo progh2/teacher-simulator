@@ -66,7 +66,8 @@ async function judgeCurrent(page) {
     const rosterName = rosterHint.replace(/^명렬 대조:\s*\d+\s*/, '').replace(/\s*\(결시\)/, '').trim()
     if (handName && rosterName && handName !== rosterName) out.push('name_mismatch')
 
-    if (card.querySelector('.proctor.missing')) out.push('missing_proctor')
+    if (card.querySelector('.proctor.is-empty')) out.push('missing_proctor')
+    if (card.querySelector('.proctor.is-misplaced, .name-stamp.is-misplaced')) out.push('proctor_misplaced')
     if (card.querySelector('.tape-trace.tape-bad')) out.push('correction_tape')
     if (card.querySelector('.bub.wrong-pen')) out.push('wrong_pen')
     if (card.classList.contains('dmg-fold') || card.classList.contains('dmg-stain') || card.classList.contains('dmg-tear')) {

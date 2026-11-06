@@ -1,5 +1,6 @@
 {
   "stampHits": 240,
+  "misplacedHits": 226,
   "runs": [
     {
       "diff": "easy",

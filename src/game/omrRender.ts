@@ -81,18 +81,41 @@ export interface RenderOpts {
 function damageOverlay(card: OmrCard): string {
   if (!card.damaged) return ''
   const kind = card.damageKind ?? 'fold'
+  // 카드 위에는 오류 이름 글자를 쓰지 않음. 종이 형상만.
   if (kind === 'fold') {
-    return `<div class="dmg-overlay dmg-fold-mark" data-region="damaged" title="접힘" aria-hidden="true">
-      <span class="dmg-fold-corner"></span><span class="dmg-fold-label">접힘</span>
+    return `<div class="dmg-overlay dmg-fold-mark" data-region="damaged" aria-hidden="true">
+      <span class="dmg-fold-corner"></span>
+      <span class="dmg-fold-crease"></span>
     </div>`
   }
   if (kind === 'stain') {
-    return `<div class="dmg-overlay dmg-stain-mark" data-region="damaged" title="얼룩" aria-hidden="true">
-      <span class="dmg-stain-blob"></span><span class="dmg-stain-blob b2"></span><span class="dmg-fold-label">얼룩</span>
+    return `<div class="dmg-overlay dmg-stain-mark" data-region="damaged" aria-hidden="true">
+      <span class="dmg-stain-blob"></span><span class="dmg-stain-blob b2"></span>
     </div>`
   }
-  return `<div class="dmg-overlay dmg-tear-mark" data-region="damaged" title="찢김" aria-hidden="true">
-    <span class="dmg-tear-edge"></span><span class="dmg-fold-label">찢김</span>
+  // tear: jagged missing edge (clip via SVG mask companion + torn flap)
+  return `<div class="dmg-overlay dmg-tear-mark" data-region="damaged" aria-hidden="true">
+    <svg class="dmg-tear-svg" viewBox="0 0 40 220" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M40 0 L28 12 L36 28 L22 44 L34 60 L18 78 L32 96 L20 114 L35 132 L16 150 L30 168 L14 186 L28 204 L40 220 Z" fill="#f3eee4"/>
+      <path d="M28 12 L36 28 L22 44 L34 60 L18 78 L32 96 L20 114 L35 132 L16 150 L30 168 L14 186 L28 204"
+        fill="none" stroke="#c4b5a5" stroke-width="1.2"/>
+    </svg>
+    <span class="dmg-tear-shadow"></span>
+  </div>`
+}
+
+function proctorBlock(card: OmrCard, hl: (k: string) => string): string {
+  const missing = !card.proctorSigned || card.injectedErrors.includes('missing_proctor')
+  const misplaced = !missing && (card.proctorStampMisplaced || card.injectedErrors.includes('proctor_misplaced'))
+  const region = missing ? 'missing_proctor' : misplaced ? 'proctor_misplaced' : ''
+  const name = card.proctorStampName ?? ''
+  const stamp = missing
+    ? ''
+    : `<em class="name-stamp ${misplaced ? 'is-misplaced' : 'is-ok'}" aria-hidden="true">${name}</em>`
+  return `<div class="proctor ${missing ? 'is-empty' : 'is-signed'} ${misplaced ? 'is-misplaced' : ''} ${hl('missing_proctor')} ${hl('proctor_misplaced')}"
+    ${region ? `data-region="${region}"` : ''}>
+    <span class="proctor-label">감독관 확인</span>
+    <div class="proctor-box">${stamp}</div>
   </div>`
 }
 
@@ -139,8 +162,6 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
   const nameBad = card.injectedErrors.includes('name_mismatch')
   const subjBad = card.injectedErrors.includes('missing_subject')
   const subjNameBad = card.injectedErrors.includes('subject_name_mismatch')
-  const procBad = card.injectedErrors.includes('missing_proctor')
-
   const damageCls = card.damaged ? `dmg-${card.damageKind ?? 'fold'} has-damage` : ''
   const tape = tapeOverlay(card)
   const dmg = damageOverlay(card)
@@ -161,7 +182,7 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
 
   const codeLabel =
     card.subjectCode == null
-      ? `<span class="subj-missing">과목코드 미표기</span>`
+      ? `<span class="subj-code subj-empty">——</span>`
       : `<span class="subj-code">${String(card.subjectCode).padStart(2, '0')}</span>`
 
   return `
@@ -197,10 +218,7 @@ export function renderOmrFront(card: OmrCard, opts: RenderOpts = {}): string {
   </section>
   ${answers}
   <footer class="omr-foot">
-    <div class="proctor ${card.proctorSigned ? 'signed' : 'missing'} ${hl('missing_proctor')}" ${procBad ? 'data-region="missing_proctor"' : ''}>
-      <span>감독관 확인</span>
-      ${card.proctorSigned ? '<em class="stamp" title="감독관 도장">確</em>' : '<em class="blank">미확인 · 도장 없음</em>'}
-    </div>
+    ${proctorBlock(card, hl)}
     <span class="foot-note">※ 컴퓨터용 수성 사인펜 · 수정테이프는 우리 학교 규정 기준 · 교사가 답안을 고치지 않음</span>
   </footer>
 </article>`

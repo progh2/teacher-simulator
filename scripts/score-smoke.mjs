@@ -47,16 +47,25 @@ const results = [
 
 // stamp coverage across seeds
 let stampHits = 0
+let misplacedHits = 0
 for (let seed = 1; seed <= 80; seed++) {
   if (g.seedHasMissingProctor('easy', seed)) stampHits++
   if (g.seedHasMissingProctor('normal', seed)) stampHits++
   if (g.seedHasMissingProctor('multi', seed)) stampHits++
+  if (g.seedHasMisplacedProctor('easy', seed)) misplacedHits++
+  if (g.seedHasMisplacedProctor('normal', seed)) misplacedHits++
+  if (g.seedHasMisplacedProctor('multi', seed)) misplacedHits++
 }
 if (stampHits < 3) {
   console.error('FAIL missing_proctor coverage too low', stampHits)
   process.exit(1)
 }
+if (misplacedHits < 3) {
+  console.error('FAIL proctor_misplaced coverage too low', misplacedHits)
+  process.exit(1)
+}
 console.log('missing_proctor seeds hit', stampHits)
+console.log('proctor_misplaced seeds hit', misplacedHits)
 
 for (const r of results) {
   const maxSansTime = 20 + 25 + 25 + r.score.inspection.length * 8
@@ -72,6 +81,7 @@ writeFileSync(
   JSON.stringify(
     {
       stampHits,
+      misplacedHits,
       runs: results.map((r) => ({
         diff: r.diff,
         mode: r.mode,

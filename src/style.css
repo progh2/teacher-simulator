@@ -2016,3 +2016,82 @@ kbd {
 .hand-line.subject .handwrite { font-size: 18px; }
 .omr-head .form-type { display: none !important; }
 .thumb-form { display: none !important; }
+
+/* === proctor name stamps + visual-only damage (no on-card error text) === */
+.proctor {
+  display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 700; color: #9f1239;
+  border: none; padding: 0; background: transparent !important; box-shadow: none !important;
+}
+.proctor-label { white-space: nowrap; }
+.proctor-box {
+  position: relative; width: 52px; height: 36px;
+  border: 1.5px solid #9f1239; border-radius: 2px; background: #fffef8;
+  overflow: visible;
+}
+.proctor.is-empty .proctor-box { background: #fffef8; }
+.proctor .blank, .proctor .stamp { display: none !important; }
+.name-stamp {
+  position: absolute; left: 50%; top: 50%;
+  width: 30px; height: 30px; margin: 0;
+  display: grid; place-items: center;
+  font-style: normal; font-weight: 900; font-size: 12px; line-height: 1.05;
+  color: #b91c1c; border: 2px solid #b91c1c; border-radius: 3px;
+  background: rgba(254, 226, 226, 0.35);
+  transform: translate(-50%, -50%) rotate(-8deg);
+  letter-spacing: -0.02em; user-select: none; pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(185,28,28,0.25);
+}
+.name-stamp.is-ok { transform: translate(-50%, -50%) rotate(-8deg); }
+.name-stamp.is-misplaced {
+  /* 확인란 테두리를 걸치거나 일부만 밖으로 — 카드 전체를 덮지 않음 */
+  transform: translate(18%, -72%) rotate(14deg);
+  opacity: 0.95;
+}
+.proctor.is-misplaced .proctor-box { overflow: visible; }
+.proctor[data-region] { cursor: pointer; }
+.proctor[data-region]:hover .proctor-box { outline: 2px dashed #0f766e; outline-offset: 2px; }
+
+/* hide old damage text labels */
+.dmg-fold-label { display: none !important; }
+
+.dmg-fold-corner {
+  position: absolute; right: 0; bottom: 0; width: 78px; height: 78px;
+  background:
+    linear-gradient(135deg, transparent 46%, rgba(0,0,0,0.07) 48%, rgba(0,0,0,0.12) 50%, #ebe4da 52%, #f7f2ea 60%);
+  box-shadow: -3px -3px 6px rgba(0,0,0,0.08);
+  pointer-events: none;
+}
+.dmg-fold-crease {
+  position: absolute; right: 0; bottom: 0; width: 78px; height: 78px;
+  background: linear-gradient(135deg, transparent 49.5%, rgba(120,90,60,0.35) 50%, transparent 50.5%);
+  pointer-events: none;
+}
+.dmg-stain-blob {
+  position: absolute; right: 14%; bottom: 20%; width: 56px; height: 44px; border-radius: 50%;
+  background: radial-gradient(circle, rgba(110,70,30,0.42), rgba(110,70,30,0.18) 50%, transparent 72%);
+  pointer-events: none;
+}
+.dmg-stain-blob.b2 { right: 26%; bottom: 14%; width: 32px; height: 26px; opacity: 0.75; }
+
+/* real tear: jagged right edge + missing strip */
+.omr-card.has-damage.dmg-tear {
+  clip-path: polygon(
+    0% 0%, 100% 0%,
+    96% 4%, 99% 8%, 94% 13%, 98% 18%, 93% 24%, 97% 30%,
+    92% 37%, 98% 44%, 93% 51%, 97% 58%, 92% 65%, 98% 72%,
+    93% 79%, 97% 86%, 94% 92%, 99% 96%, 100% 100%,
+    0% 100%
+  );
+  box-shadow: 4px 6px 14px rgba(0,0,0,0.14);
+}
+.dmg-tear-svg {
+  position: absolute; right: -2px; top: 8%; width: 28px; height: 84%;
+  pointer-events: none; filter: drop-shadow(-2px 0 2px rgba(0,0,0,0.12));
+}
+.dmg-tear-shadow {
+  position: absolute; right: 0; top: 10%; width: 10px; height: 80%;
+  background: linear-gradient(90deg, rgba(0,0,0,0.12), transparent);
+  pointer-events: none;
+}
+.omr-card.has-damage.dmg-fold { clip-path: none; }
+.subj-empty { opacity: 0.35; letter-spacing: 0.1em; }
