@@ -5,6 +5,7 @@ import type {
   ErrorType,
   GameScore,
   InspectionJudgment,
+  InspectionMode,
   OmrCard,
   SortResult,
 } from './types'
@@ -47,6 +48,7 @@ export function scoreSort(
 export function scoreInspection(
   cards: OmrCard[],
   judgments: InspectionJudgment[],
+  mode: InspectionMode = 'subject_review',
 ): CardScore[] {
   const byId = new Map(judgments.map((j) => [j.cardId, j]))
   return cards.map((card) => {
@@ -57,7 +59,7 @@ export function scoreInspection(
     const j = byId.get(card.id)
     const selected = normalize(j?.selected ?? [])
     const disposition: Disposition = j?.disposition ?? 'ok'
-    const expectedDisp = expectedDisposition(card)
+    const expectedDisp = expectedDisposition(card, mode)
 
     const expSet = new Set(exp)
     const selSet = new Set(selected)
@@ -90,6 +92,7 @@ export function computeScore(opts: {
   timeSeconds: number
   cardCount: number
   timedOut: boolean
+  inspectionMode: InspectionMode
 }): GameScore {
   const headcountPoints = opts.headcountOk ? HC : 0
   const sortPoints =
@@ -124,5 +127,6 @@ export function computeScore(opts: {
     total: headcountPoints + sortPoints + inspectionPoints + timeBonus,
     maxTotal,
     timedOut: opts.timedOut,
+    inspectionMode: opts.inspectionMode,
   }
 }

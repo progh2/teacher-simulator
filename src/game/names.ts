@@ -25,3 +25,15 @@ export function makeDifferentName(rng: () => number, avoid: string): string {
   }
   return '홍길동'
 }
+
+/** 반 안에서 가나다순으로 쓸 고유 이름 count개 */
+export function makeSortedKoreanNames(rng: () => number, count: number): string[] {
+  const set = new Set<string>()
+  let guard = 0
+  while (set.size < count && guard < count * 40) {
+    set.add(makeKoreanName(rng))
+    guard++
+  }
+  while (set.size < count) set.add(`가상${String(set.size + 1).padStart(2, '0')}`)
+  return [...set].sort((a, b) => a.localeCompare(b, 'ko'))
+}
